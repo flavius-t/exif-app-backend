@@ -2,8 +2,7 @@ from flask import Flask, request
 from flask_cors import CORS
 import os
 from utils.extract_meta import extract_metadata, remove_exif
-from utils.zip import unzip_file
-
+from utils.zip import unzip_file, make_temp_dirs, UPLOAD_FOLDER, IMAGES_FOLDER
 
 
 app = Flask(__name__)
@@ -18,16 +17,12 @@ def handle_upload():
     if 'file' not in request.files:
         return 'Request is missing zipfile', 400
     
-    # TODO: modularize all of this
     file = request.files['file']
-    upload_folder = 'temp'
-    os.makedirs(upload_folder, exist_ok=True)
-    zip_path = os.path.join(upload_folder, 'images.zip')
-    file.save(zip_path)
 
-    imgs_folder = 'temp/images'
-    os.makedirs('temp/images', exist_ok=True)
-    unzip_file(zip_path, imgs_folder)
+    make_temp_dirs()
+    zip_path = os.path.join(UPLOAD_FOLDER, 'images.zip')
+    file.save(zip_path)
+    unzip_file(zip_path, IMAGES_FOLDER)
 
     response = {}
     print(response)
