@@ -1,8 +1,8 @@
 import os
-from flask import Flask, request
+from flask import Flask, request, send_file, make_response
 from flask_cors import CORS
 from utils.extract_meta import extract_metadata
-from utils.zip import unzip_file
+from utils.zip import unzip_file, zip_files
 from utils.constants import UPLOAD_FOLDER, IMAGES_FOLDER, ZIP_NAME
 
 
@@ -14,10 +14,10 @@ CORS(app)
 def handle_upload():
     if not request.files:
         return 'No files uploaded', 400
-    
+
     if 'file' not in request.files:
         return 'Request is missing zipfile', 400
-    
+
     file = request.files['file']
 
     # save images to temp folder
@@ -28,11 +28,9 @@ def handle_upload():
 
     extract_metadata(IMAGES_FOLDER)
 
-    response = {}
-    print(response)
+    zip_files(zip_path, IMAGES_FOLDER)
 
-    # TODO: respond with processed files
-    return response, 200
+    return send_file(zip_path, as_attachment=True), 200
 
 
 if __name__ == '__main__':
