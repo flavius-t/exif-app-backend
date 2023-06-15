@@ -1,8 +1,9 @@
+import os
 from flask import Flask, request
 from flask_cors import CORS
-import os
 from utils.extract_meta import extract_metadata, remove_exif
-from utils.zip import unzip_file, make_temp_dirs, UPLOAD_FOLDER, IMAGES_FOLDER
+from utils.zip import unzip_file
+from utils.constants import UPLOAD_FOLDER, IMAGES_FOLDER, ZIP_NAME
 
 
 app = Flask(__name__)
@@ -19,8 +20,9 @@ def handle_upload():
     
     file = request.files['file']
 
-    make_temp_dirs()
-    zip_path = os.path.join(UPLOAD_FOLDER, 'images.zip')
+    # save images to temp folder
+    os.makedirs(IMAGES_FOLDER, exist_ok=True)
+    zip_path = os.path.join(UPLOAD_FOLDER, ZIP_NAME)
     file.save(zip_path)
     unzip_file(zip_path, IMAGES_FOLDER)
 
