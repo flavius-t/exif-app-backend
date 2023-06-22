@@ -3,11 +3,11 @@ import os
 import shutil
 import uuid
 
-from flask import Flask, request, send_file, after_this_request
+from flask import Flask, request, send_file
 from flask_cors import CORS
 from utils.extract_meta import extract_metadata
 from utils.zip import unzip_file, zip_files
-from utils.constants import UPLOAD_FOLDER, IMAGES_FOLDER, ZIP_NAME
+from utils.constants import UPLOAD_FOLDER, ZIP_NAME
 
 
 app = Flask(__name__)
