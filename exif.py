@@ -1,5 +1,7 @@
 import os
-from flask import Flask, request, send_file, make_response
+import shutil
+
+from flask import Flask, request, send_file
 from flask_cors import CORS
 from utils.extract_meta import extract_metadata
 from utils.zip import unzip_file, zip_files
@@ -30,7 +32,11 @@ def handle_upload():
 
     zip_files(zip_path, IMAGES_FOLDER)
 
-    return send_file(zip_path, as_attachment=True), 200
+    response = send_file(zip_path, as_attachment=True)
+
+    shutil.rmtree(IMAGES_FOLDER)
+
+    return response, 200
 
 
 if __name__ == '__main__':
