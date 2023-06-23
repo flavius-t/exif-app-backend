@@ -1,6 +1,11 @@
 import json
 import os
+import logging
 from PIL import ExifTags, Image
+
+
+log = logging.getLogger(__name__)
+logging.getLogger('PIL').setLevel(logging.INFO)
 
 
 def extract_metadata(folder_path: str):
@@ -16,6 +21,8 @@ def _extract_metadata(file_path: str):
     '''
     Extracts and removes metadata from an image file.
     '''
+    log.debug(f'Extracting metadata from {file_path}')
+
     metadata = {}
 
     # TODO: modularize
