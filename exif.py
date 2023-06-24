@@ -16,8 +16,6 @@ CORS(app)
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
-# exclude logs from PIL
-logging.getLogger('PIL').setLevel(logging.INFO)
 
 
 @app.route('/upload', methods=['POST'])
@@ -35,7 +33,6 @@ def handle_upload():
 
     file = request.files['file']
 
-    # save images to temp folder
     log.info(f'request {req_id}: saving zipfile to temp folder')
     base_folder = f'{UPLOAD_FOLDER}/{req_id}'
     imgs_folder = f'{base_folder}/images'
@@ -48,23 +45,29 @@ def handle_upload():
     unzip_file(zip_path, imgs_folder)
 
     log.info(f'request {req_id}: extracting image metadata')
-    extract_metadata(imgs_folder)
+    try:
+        extract_metadata(imgs_folder)
 
-    log.info(f'request {req_id}: zipping processed images')
-    zip_files(zip_path, imgs_folder)
+        log.info(f'request {req_id}: zipping processed images')
+        zip_files(zip_path, imgs_folder)
 
-    # TODO: error handling
-    log.info(f'request {req_id}: preparing response')
-    return_data = io.BytesIO()
-    with open(zip_path, 'rb') as fo:
-        return_data.write(fo.read())
-    return_data.seek(0)
+        # TODO: error handling
+        log.info(f'request {req_id}: preparing response')
+        return_data = io.BytesIO()
+        with open(zip_path, 'rb') as fo:
+            return_data.write(fo.read())
+        return_data.seek(0)
 
-    log.info(f'request {req_id}: cleaning up temp folder')
-    shutil.rmtree(base_folder)
+        response = send_file(return_data, as_attachment=True, mimetype="application/zip", download_name="images.zip"), 200
+    except ValueError as e:
+        log.error(f'request {req_id}: error occured {e}')
+        response = "Non-image file detected in upload", 400
+    finally:
+        log.info(f'request {req_id}: cleaning up temp folder')
+        shutil.rmtree(base_folder)
 
     log.info(f'request {req_id}: sending response')
-    return send_file(return_data, as_attachment=True, mimetype="application/zip", download_name="images.zip"), 200
+    return response
 
 
 if __name__ == '__main__':
