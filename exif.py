@@ -33,6 +33,8 @@ def handle_upload():
 
     file = request.files['file']
 
+    # TODO: validate and sanitize zipfile contents before saving
+
     log.info(f'request {req_id}: saving zipfile to temp folder')
     base_folder = f'{UPLOAD_FOLDER}/{req_id}'
     imgs_folder = f'{base_folder}/images'
@@ -49,6 +51,7 @@ def handle_upload():
         extract_metadata(imgs_folder)
 
         log.info(f'request {req_id}: zipping processed images')
+        # TODO: error handling
         zip_files(zip_path, imgs_folder)
 
         # TODO: error handling

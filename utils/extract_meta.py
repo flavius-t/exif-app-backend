@@ -67,13 +67,13 @@ def _extract_metadata(file_path: str) -> None:
 
     return None
 
-
+# TODO: error handling
 def _remove_exif(img: Image):
     if "exif" in img.info:
         img.info.pop("exif")
         img.save(img.filename)
 
-
+# TODO: error handling
 def _write_to_json(filename: str, metadata: dict):
     base_name = os.path.splitext(filename)[0]
     output_file_path = f'{base_name}_meta.json'
