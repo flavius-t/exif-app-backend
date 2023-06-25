@@ -96,10 +96,10 @@ def handle_upload():
 
         response = send_file(return_data, as_attachment=True, mimetype="application/zip", download_name="images.zip"), 200
     except ValueError as e:
-        log.error(f'request {req_id}: error occured {e}')
+        log.error(f'request {req_id}: found non-image file -> {e}')
         response = ERR_NON_IMAGE_FILE
     except OSError as e:
-        log.error(f'request {req_id}: error occured {e}')
+        log.error(f'request {req_id}: could not read zipfile into memory -> {e}')
         response = ERR_READ_INTO_MEMORY
     finally:
         log.info(f'request {req_id}: cleaning up temp folder')
