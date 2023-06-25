@@ -18,6 +18,12 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(leve
 log = logging.getLogger(__name__)
 
 
+ERR_NO_FILES = 'No files contained in request', 400
+ERR_NO_ZIP = 'Request is missing zipfile', 400
+ERR_TEMP_FOLDER = 'Internal error occured while processing images: failed to create temp folder', 500
+ERR_NON_IMAGE_FILE = 'Non-image file detected in upload', 400
+
+
 def save_zipfile(file, folder: str):
     zip_path = os.path.join(folder, ZIP_NAME)
     file.save(zip_path)
@@ -44,11 +50,11 @@ def handle_upload():
 
     if not request.files:
         log.error(f'request {req_id}: no files uploaded')
-        return 'No files contained in request', 400
+        return ERR_NO_FILES
 
     if 'file' not in request.files:
         log.error(f'request {req_id}: zipfile is missing from request.files')
-        return 'Request is missing zipfile', 400
+        return ERR_NO_ZIP
 
     file = request.files['file']
 
@@ -58,8 +64,7 @@ def handle_upload():
     try:
         base_folder, imgs_folder = create_temp_folder(req_id)
     except OSError:
-        log.error(f'request {req_id}: could not create folder {imgs_folder} -- folder already exists')
-        return 'Internal error occured while processing images: failed to create temp folder', 500
+        return ERR_TEMP_FOLDER
     
     log.info(f'request {req_id}: saving zipfile to temp folder')
     zip_path = save_zipfile(file, base_folder)
@@ -85,7 +90,7 @@ def handle_upload():
         response = send_file(return_data, as_attachment=True, mimetype="application/zip", download_name="images.zip"), 200
     except ValueError as e:
         log.error(f'request {req_id}: error occured {e}')
-        response = "Non-image file detected in upload", 400
+        response = ERR_NON_IMAGE_FILE
     finally:
         log.info(f'request {req_id}: cleaning up temp folder')
         shutil.rmtree(base_folder)
