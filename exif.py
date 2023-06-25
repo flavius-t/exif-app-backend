@@ -18,14 +18,33 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(leve
 log = logging.getLogger(__name__)
 
 
+def save_zipfile(file, folder: str):
+    zip_path = os.path.join(folder, ZIP_NAME)
+    file.save(zip_path)
+    file.close()
+    return zip_path
+
+
+def create_temp_folder(req_id: str):
+    base_folder = f'{UPLOAD_FOLDER}/{req_id}'
+    imgs_folder = f'{base_folder}/images'
+    try:
+        os.makedirs(imgs_folder)
+    except OSError as e:
+        log.error(f'request {req_id}: could not create folder {imgs_folder} -- folder already exists')
+        raise e
+    
+    return base_folder, imgs_folder
+
+
 @app.route('/upload', methods=['POST'])
 def handle_upload():
     req_id = str(uuid.uuid4())
-    log.info(f'Received new upload, request_id = {req_id}')
+    log.info(f'Received new upload, assigning request_id {req_id}')
 
     if not request.files:
         log.error(f'request {req_id}: no files uploaded')
-        return 'No files uploaded', 400
+        return 'No files contained in request', 400
 
     if 'file' not in request.files:
         log.error(f'request {req_id}: zipfile is missing from request.files')
@@ -35,19 +54,21 @@ def handle_upload():
 
     # TODO: validate and sanitize zipfile contents before saving
 
-    log.info(f'request {req_id}: saving zipfile to temp folder')
-    base_folder = f'{UPLOAD_FOLDER}/{req_id}'
-    imgs_folder = f'{base_folder}/images'
-    os.makedirs(imgs_folder) # TODO: handle already exists error
-    zip_path = os.path.join(base_folder, ZIP_NAME)
-    file.save(zip_path)
-    file.close()
-
-    log.info(f'request {req_id}: unzipping images')
-    unzip_file(zip_path, imgs_folder)
-
-    log.info(f'request {req_id}: extracting image metadata')
+    log.info(f'request {req_id}: creating temp folder')
     try:
+        base_folder, imgs_folder = create_temp_folder(req_id)
+    except OSError:
+        log.error(f'request {req_id}: could not create folder {imgs_folder} -- folder already exists')
+        return 'Internal error occured while processing images: failed to create temp folder', 500
+    
+    log.info(f'request {req_id}: saving zipfile to temp folder')
+    zip_path = save_zipfile(file, base_folder)
+
+    try:
+        log.info(f'request {req_id}: unzipping images')
+        unzip_file(zip_path, imgs_folder)
+
+        log.info(f'request {req_id}: extracting image metadata')
         extract_metadata(imgs_folder)
 
         log.info(f'request {req_id}: zipping processed images')
