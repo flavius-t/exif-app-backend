@@ -22,10 +22,25 @@ class ZipError(Exception):
         return self.message
 
 
-# TODO: error handling
 def unzip_file(zip_path, extract_dir):
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(extract_dir)
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+    except zipfile.BadZipFile as e:
+        log.error(f'BadZipFile: zipfile {zip_path} is corrupted -> {e}')
+        raise ZipError('Zip file is corrupted', e)
+    except FileNotFoundError as e:
+        log.error(f'FileNotFoundError: could not find file {zip_path} -> {e}')
+        raise ZipError('Zip file not found', e)
+    except zipfile.LargeZipFile as e:
+        log.error(f'LargeZipFile: zip file exceeds limits -> {e}')
+        raise ZipError('Zip file exceeds size limit', e)
+    except NotADirectoryError as e:
+        log.error(f'NotADirectoryError: {extract_dir} is not a directory -> {e}')
+        raise ZipError('Extraction directory invalid', e)
+    except OSError as e:
+        log.error(f'OSError: could not extract zipfile {zip_path} -> {e}')
+        raise ZipError('', e)
 
 
 def zip_files(folder_path: str):
