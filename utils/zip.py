@@ -7,6 +7,31 @@ import logging
 log = logging.getLogger(__name__)
 
 
+MIME_TYPES = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "json": "application/json"
+}
+
+
+def get_mime_type(file_path: str):
+    """
+    Returns the MIME type of a file based on its extension.
+
+    Args:
+        file_path (str): path to file
+    
+    Raises:
+        ValueError: if file is not accepted file type (image or json)
+    """
+    _, file_extension = os.path.splitext(file_path)
+    mime_type = MIME_TYPES.get(file_extension[1:])
+    if mime_type is None:
+        raise ValueError(f'{file_path} is not an accepted file type')
+    return mime_type
+
+
 class ZipError(Exception):
     """
     Exception raised for errors related to zipping files.
@@ -61,13 +86,22 @@ def zip_files(folder_path: str):
                     file_path = os.path.join(root, file)
 
                     # Add file to zip
-                    zipf.write(file_path, arcname=os.path.relpath(file_path, folder_path))    
+                    zipf.write(file_path, arcname=os.path.relpath(file_path, folder_path))
+
+                    # set mime type
+                    mime_type = get_mime_type(file)
+                    log.debug(f'Setting mime type of {file} to {mime_type}')
+                    zipinfo = zipf.getinfo(file)
+                    zipinfo.comment = mime_type.encode('utf-8')
     except FileNotFoundError as e:
         log.error(f'FileNotFoundError: could not find file {file_path} -> {e}')
-        raise ZipError('Image file not found', e)
+        raise ZipError('Fle not found', e)
     except zipfile.LargeZipFile:
         log.error(f'LargeZipFile: zip file exceeds limits -> {e}')
         raise ZipError('Zip file exceeds size limit', e)
+    except ValueError as e:
+        log.error(f'ValueError: attempted to zip illegal file -> {e}')
+        raise ZipError('Illegal file', e)
 
     buffer.seek(0)
 
