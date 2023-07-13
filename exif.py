@@ -1,10 +1,9 @@
-import io
 import os
 import shutil
 import uuid
 import logging
 
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, make_response
 from flask_cors import CORS
 from utils.extract_meta import extract_metadata
 from utils.zip import unzip_file, zip_files, ZipError
@@ -81,6 +80,10 @@ def handle_upload():
         zip_buffer = zip_files(imgs_folder)
 
         response = send_file(zip_buffer, as_attachment=True, mimetype="application/zip", download_name="images.zip"), 200
+
+        response = make_response(response)
+        response.headers['X-Request-Id'] = req_id
+        response.headers['Access-Control-Expose-Headers'] = 'X-Request-Id'
     except ValueError as e:
         log.error(f'request {req_id}: found non-image file -> {e}')
         response = ERR_NON_IMAGE_FILE
