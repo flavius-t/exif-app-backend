@@ -96,7 +96,7 @@ def zip_files(folder_path: str):
                     zipinfo.comment = mime_type.encode("utf-8")
     except FileNotFoundError as e:
         log.error(f"FileNotFoundError: could not find file {file_path} -> {e}")
-        raise ZipError("Fle not found", e)
+        raise ZipError("File not found", e)
     except zipfile.LargeZipFile:
         log.error(f"LargeZipFile: zip file exceeds limits -> {e}")
         raise ZipError("Zip file exceeds size limit", e)

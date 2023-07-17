@@ -64,3 +64,9 @@ def test_zip_files_legal(num_files):
         raise e
     finally:
         shutil.rmtree(TEST_FILES_FOLDER)
+
+
+def test_zip_files_invalid_folder():
+    with pytest.raises(ZipError) as e:
+        zip_files("invalid_folder")
+        assert "FileNotFound" in str(e.value)
