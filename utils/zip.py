@@ -51,6 +51,8 @@ class ZipError(Exception):
 def unzip_file(zip_path, extract_dir):
     try:
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            if zip_ref.namelist() == []:
+                raise ZipError("Zip file is empty")
             zip_ref.extractall(extract_dir)
     except zipfile.BadZipFile as e:
         log.error(f"BadZipFile: zipfile {zip_path} is corrupted -> {e}")
