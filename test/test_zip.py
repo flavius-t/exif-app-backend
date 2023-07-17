@@ -2,14 +2,16 @@ import pytest
 import os
 import shutil
 import zipfile
+from contextlib import nullcontext as does_not_raise
 
 from PIL import Image
 
-from utils.zip import zip_files
+from utils.zip import zip_files, unzip_file
 from utils.zip import ZipError
 
 
 TEST_FILES_FOLDER = "test_zip"
+ZIP_EXTRACTION_FOLDER = "test_zip_extract"
 
 
 def create_text_files(num_files):
@@ -70,3 +72,29 @@ def test_zip_files_invalid_folder():
     with pytest.raises(ZipError) as e:
         zip_files("invalid_folder")
         assert "FileNotFound" in str(e.value)
+
+
+@pytest.mark.parametrize(
+    "num_files, err", [(3, does_not_raise()), (1, does_not_raise()), (0, pytest.raises(ZipError))]
+)
+def test_unzip_files(num_files, err):
+    os.mkdir(TEST_FILES_FOLDER)
+    try:
+        with err:
+            create_image_files(num_files)
+            buffer = zip_files(TEST_FILES_FOLDER)
+            assert buffer is not None
+            # write buffer zipfile to disk
+            zip_path = os.path.join(TEST_FILES_FOLDER, "test.zip")
+            with open(zip_path, "wb") as f:
+                f.write(buffer.getvalue())
+            assert os.path.exists(zip_path)
+            # unzip files
+            extract_dir = os.path.join(TEST_FILES_FOLDER, ZIP_EXTRACTION_FOLDER)
+            unzip_file(zip_path, extract_dir)
+            assert os.path.exists(extract_dir)
+            assert len(os.listdir(extract_dir)) == num_files
+    except Exception as e:
+        raise e
+    finally:
+        shutil.rmtree(TEST_FILES_FOLDER)
