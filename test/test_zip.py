@@ -4,33 +4,13 @@ import shutil
 import zipfile
 from contextlib import nullcontext as does_not_raise
 
-from PIL import Image
-
+from test.testing_utils import create_text_files, create_image_files, create_mixed_files
 from utils.zip import zip_files, unzip_file
 from utils.zip import ZipError
 
 
 TEST_FILES_FOLDER = "test_zip"
 ZIP_EXTRACTION_FOLDER = "test_zip_extract"
-
-
-def create_text_files(num_files):
-    for i in range(num_files):
-        file_path = os.path.join(TEST_FILES_FOLDER, f"test_file_{i}.txt")
-        with open(file_path, "w") as f:
-            f.write("testing")
-
-
-def create_image_files(num_files):
-    for i in range(num_files):
-        file_path = os.path.join(TEST_FILES_FOLDER, f"test_file_{i}.jpg")
-        image = Image.new("RGB", (500, 500), "white")
-        image.save(file_path, "JPEG")
-
-
-def create_mixed_files(num_files):
-    create_text_files(num_files)
-    create_image_files(num_files)
 
 
 @pytest.mark.parametrize(
@@ -40,7 +20,7 @@ def create_mixed_files(num_files):
 def test_zip_files_illegal(create_files, num_files):
     os.mkdir(TEST_FILES_FOLDER)
     try:
-        create_files(num_files)
+        create_files(num_files, TEST_FILES_FOLDER)
         with pytest.raises(ZipError) as e:
             zip_files(TEST_FILES_FOLDER)
             assert "Illegal file" in str(e.value)
@@ -54,7 +34,7 @@ def test_zip_files_illegal(create_files, num_files):
 def test_zip_files_legal(num_files):
     os.mkdir(TEST_FILES_FOLDER)
     try:
-        create_image_files(num_files)
+        create_image_files(num_files, TEST_FILES_FOLDER)
         buffer = zip_files(TEST_FILES_FOLDER)
         assert buffer is not None
         with zipfile.ZipFile(buffer, "r") as zip_ref:
@@ -81,7 +61,7 @@ def test_unzip_files(num_files, err):
     os.mkdir(TEST_FILES_FOLDER)
     try:
         with err:
-            create_image_files(num_files)
+            create_image_files(num_files, TEST_FILES_FOLDER)
             buffer = zip_files(TEST_FILES_FOLDER)
             assert buffer is not None
             # write buffer zipfile to disk
