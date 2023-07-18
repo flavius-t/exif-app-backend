@@ -66,8 +66,10 @@ def _extract_metadata(file_path: str) -> None:
     return None
 
 
-# TODO: error handling
 def _remove_exif(img: Image):
+    if not isinstance(img, Image.Image):
+        raise TypeError("Image must be a PIL Image object")
+
     if "exif" in img.info:
         img.info.pop("exif")
         img.save(img.filename)
