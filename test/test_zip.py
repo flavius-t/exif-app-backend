@@ -98,3 +98,24 @@ def test_unzip_files(num_files, err):
         raise e
     finally:
         shutil.rmtree(TEST_FILES_FOLDER)
+
+
+def test_unzip_files_bad_path():
+    with pytest.raises(ZipError) as e:
+        unzip_file("bad_path", "bad_path")
+        assert "Zip file not found" in str(e.value)
+
+
+def test_unzip_non_zip_file():
+    os.mkdir(TEST_FILES_FOLDER)
+    try:
+        file_path = os.path.join(TEST_FILES_FOLDER, "test.txt")
+        with open(file_path, "w") as f:
+            f.write("testing")
+        with pytest.raises(ZipError) as e:
+            unzip_file(file_path, "bad_path")
+            assert "Zip file is corrupted" in str(e.value)
+    except Exception as e:
+        raise e
+    finally:
+        shutil.rmtree(TEST_FILES_FOLDER)
