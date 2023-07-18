@@ -3,33 +3,10 @@ import os
 import io
 import logging
 
+from utils.mime_type import get_mime_type
+
 
 log = logging.getLogger(__name__)
-
-
-MIME_TYPES = {
-    "jpg": "image/jpeg",
-    "jpeg": "image/jpeg",
-    "png": "image/png",
-    "json": "application/json",
-}
-
-
-def get_mime_type(file_path: str):
-    """
-    Returns the MIME type of a file based on its extension.
-
-    Args:
-        file_path (str): path to file
-
-    Raises:
-        ValueError: if file is not accepted file type (image or json)
-    """
-    _, file_extension = os.path.splitext(file_path)
-    mime_type = MIME_TYPES.get(file_extension[1:])
-    if mime_type is None:
-        raise ValueError(f"{file_path} is not an accepted file type")
-    return mime_type
 
 
 class ZipError(Exception):
@@ -63,9 +40,6 @@ def unzip_file(zip_path, extract_dir):
     except zipfile.LargeZipFile as e:
         log.error(f"LargeZipFile: zip file exceeds limits -> {e}")
         raise ZipError("Zip file exceeds size limit", e)
-    except NotADirectoryError as e:
-        log.error(f"NotADirectoryError: {extract_dir} is not a directory -> {e}")
-        raise ZipError("Extraction directory invalid", e)
     except OSError as e:
         log.error(f"OSError: could not extract zipfile {zip_path} -> {e}")
         raise ZipError("", e)
