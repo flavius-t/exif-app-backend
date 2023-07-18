@@ -73,7 +73,6 @@ def _remove_exif(img: Image):
         img.save(img.filename)
 
 
-# TODO: error handling
 def _write_to_json(filename: str, metadata: dict):
     """
     Writes image metadata to a json file.
@@ -81,6 +80,9 @@ def _write_to_json(filename: str, metadata: dict):
     Args:
         filename (str): path to image file
     """
+    if not isinstance(metadata, dict):
+        raise TypeError("Metadata must be a dictionary")
+
     base_name = os.path.splitext(filename)[0]
     output_file_path = f"{base_name}_meta.json"
     with open(output_file_path, "w") as output_file:
