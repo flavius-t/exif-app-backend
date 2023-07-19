@@ -8,7 +8,7 @@ from contextlib import nullcontext as does_not_raise
 from PIL import Image
 
 from test.testing_utils import create_image_files
-from test.test_upload import TEST_VALID_MULTIPLE
+from test.integration.test_upload import TEST_VALID_MULTIPLE
 from utils.extract_meta import (
     _extract_metadata,
     _remove_exif,
