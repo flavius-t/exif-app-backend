@@ -8,6 +8,7 @@ from contextlib import nullcontext as does_not_raise
 from PIL import Image
 
 from test.testing_utils import create_image_files
+from test.test_upload import TEST_VALID_MULTIPLE
 from utils.extract_meta import (
     _extract_metadata,
     _remove_exif,
@@ -18,9 +19,8 @@ from utils.extract_meta import (
 
 
 TEST_FOLDER = "test_extract_meta_folder"
-TEST_IMAGES_FOLDER = os.path.join("test", "images")
-TEST_IMG_1 = os.path.join(TEST_IMAGES_FOLDER, "DSC_2233.jpg")
-TEST_IMG_2 = os.path.join(TEST_IMAGES_FOLDER, "DSC_2241.jpg")
+TEST_IMG_1 = os.path.join(TEST_VALID_MULTIPLE, "DSC_2250.jpg")
+TEST_IMG_2 = os.path.join(TEST_VALID_MULTIPLE, "DSC_2241.jpg")
 
 
 @pytest.mark.parametrize(
