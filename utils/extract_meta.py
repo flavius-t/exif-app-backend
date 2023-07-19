@@ -24,7 +24,7 @@ def extract_metadata(folder_path: str) -> None:
     for file in os.listdir(folder_path):
         _, file_extension = os.path.splitext(file)
         if not file_extension[1:] in ALLOWED_EXTENSIONS:
-            raise ValueError(f"File {file} is not an image file")
+            raise TypeError(f"File {file} is not an image file")
 
         _extract_metadata(os.path.join(folder_path, file))
 
@@ -40,7 +40,6 @@ def _extract_metadata(file_path: str) -> None:
 
     metadata = {}
 
-    # TODO: modularize
     try:
         with Image.open(file_path) as img:
             metadata["format"] = img.format

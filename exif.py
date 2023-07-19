@@ -102,8 +102,8 @@ def handle_upload():
         response = make_response(response)
         response.headers["X-Request-Id"] = req_id
         response.headers["Access-Control-Expose-Headers"] = "X-Request-Id"
-    except ValueError as e:
-        log.error(f"request {req_id}: found non-image file -> {e}")
+    except TypeError as e:
+        log.error(f"request {req_id}: found non-image file in zipfile -> {e}")
         response = ERR_NON_IMAGE_FILE
     except ZipError as e:
         log.error(f"request {req_id}: failed to zip files into memory -> {e}")

@@ -2,14 +2,19 @@ import pytest
 import os
 import json
 import shutil
+from unittest.mock import patch
+from contextlib import nullcontext as does_not_raise
 
 from PIL import Image
 
 from test.testing_utils import create_image_files
-from utils.extract_meta import _extract_metadata, _remove_exif, _write_to_json
+from utils.extract_meta import _extract_metadata, _remove_exif, _write_to_json, extract_metadata
 
 
 TEST_FOLDER = "test_extract_meta_folder"
+TEST_IMAGES_FOLDER = os.path.join("test", "images")
+TEST_IMG_1 = os.path.join(TEST_IMAGES_FOLDER, "DSC_2233.jpg")
+TEST_IMG_2 = os.path.join(TEST_IMAGES_FOLDER, "DSC_2241.jpg")
 
 
 @pytest.mark.parametrize(
@@ -76,10 +81,10 @@ def test_remove_exif():
             img = Image.open(f)
             img.filename = os.path.basename(file_path)
             set_mock_exif(img)
-            assert img.info.get('exif') is not None
+            assert img.info.get("exif") is not None
 
             _remove_exif(img)
-            assert img.info.get('exif') is None
+            assert img.info.get("exif") is None
     except Exception as e:
         raise e
     finally:
@@ -95,3 +100,41 @@ def test_remove_exif_invalid_image():
         _remove_exif(invalid_image)
 
     assert str(exc_info.value) == "Image must be a PIL Image object"
+
+
+def test_extract_metadata():
+    os.mkdir(TEST_FOLDER)
+    try:
+        test_img_name = os.path.basename(TEST_IMG_1)
+        test_img_name_no_ext = os.path.splitext(test_img_name)[0]
+        cpy_dest = os.path.join(TEST_FOLDER, test_img_name)
+        shutil.copy(TEST_IMG_1, cpy_dest)
+
+        _extract_metadata(cpy_dest)
+
+        meta_file = os.path.join(TEST_FOLDER, f"{test_img_name_no_ext}_meta.json")
+        assert os.path.isfile(meta_file)
+    except Exception as e:
+        raise e
+    finally:
+        shutil.rmtree(TEST_FOLDER)
+
+
+@pytest.mark.parametrize(
+    "folder_contents, err, call_count",
+    [
+        ([], does_not_raise(), 0),
+        (["file1.jpg"], does_not_raise(), 1),
+        (["file1.png", "file2.jpg"], does_not_raise(), 2),
+        (["file1.png", "file2.jpg", "file3.txt"], pytest.raises(TypeError), 2),
+        
+    ],
+)
+def test_extract_metadata_folder(folder_contents, err, call_count):
+    with patch("utils.extract_meta._extract_metadata") as mock_extract, patch(
+        "os.listdir"
+    ) as mock_listdir:
+        mock_listdir.return_value = folder_contents
+        with err:
+            extract_metadata("dummy_folder")
+        assert mock_extract.call_count == call_count
