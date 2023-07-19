@@ -5,7 +5,7 @@ import logging
 
 from flask import Flask, request, send_file, make_response
 from flask_cors import CORS
-from utils.extract_meta import extract_metadata
+from utils.extract_meta import extract_metadata, ExtractMetaError
 from utils.zip import unzip_file, zip_files, ZipError
 from utils.constants import UPLOAD_FOLDER, ZIP_NAME
 
@@ -28,6 +28,10 @@ ERR_TEMP_FOLDER = (
 ERR_NON_IMAGE_FILE = "Non-image file detected in upload", 400
 ERR_ZIP_TO_MEMORY = (
     "Internal error occured while processing images: failed to zip files into memory",
+    500,
+)
+ERR_EXTRACT_META = (
+    "Internal error occured while processing images: failed to extract metadata from images",
     500,
 )
 
@@ -108,6 +112,9 @@ def handle_upload():
     except ZipError as e:
         log.error(f"request {req_id}: failed to zip files into memory -> {e}")
         response = ERR_ZIP_TO_MEMORY
+    except ExtractMetaError as e:
+        log.error(f"request {req_id}: failed to extract metadata from images -> {e}")
+        response = ERR_EXTRACT_META
     finally:
         log.info(f"request {req_id}: cleaning up temp folder")
         shutil.rmtree(base_folder)

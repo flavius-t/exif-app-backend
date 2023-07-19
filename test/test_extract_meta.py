@@ -8,7 +8,13 @@ from contextlib import nullcontext as does_not_raise
 from PIL import Image
 
 from test.testing_utils import create_image_files
-from utils.extract_meta import _extract_metadata, _remove_exif, _write_to_json, extract_metadata
+from utils.extract_meta import (
+    _extract_metadata,
+    _remove_exif,
+    _write_to_json,
+    extract_metadata,
+    ExtractMetaError,
+)
 
 
 TEST_FOLDER = "test_extract_meta_folder"
@@ -102,7 +108,7 @@ def test_remove_exif_invalid_image():
     assert str(exc_info.value) == "Image must be a PIL Image object"
 
 
-def test_extract_metadata():
+def test_extract_metadata_creates_meta_file():
     os.mkdir(TEST_FOLDER)
     try:
         test_img_name = os.path.basename(TEST_IMG_1)
@@ -120,6 +126,16 @@ def test_extract_metadata():
         shutil.rmtree(TEST_FOLDER)
 
 
+@pytest.mark.parametrize("arg", [
+    ("invalid_image_path"),
+    (1),
+    ]
+)
+def test_extract_metadata_raises(arg):
+    with pytest.raises(ExtractMetaError):
+        _extract_metadata(arg)
+
+
 @pytest.mark.parametrize(
     "folder_contents, err, call_count",
     [
@@ -127,7 +143,6 @@ def test_extract_metadata():
         (["file1.jpg"], does_not_raise(), 1),
         (["file1.png", "file2.jpg"], does_not_raise(), 2),
         (["file1.png", "file2.jpg", "file3.txt"], pytest.raises(TypeError), 2),
-        
     ],
 )
 def test_extract_metadata_folder(folder_contents, err, call_count):

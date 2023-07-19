@@ -11,6 +11,22 @@ logging.getLogger("PIL").setLevel(logging.INFO)
 ALLOWED_EXTENSIONS = set(["jpg", "jpeg", "png"])
 
 
+class ExtractMetaError(Exception):
+    """
+    Exception raised for errors related to extracting metadata from images.
+    """
+
+    def __init__(self, message, underlying_exception=None):
+        self.message = "Error occurred while extracting metadata from image: " + message
+        self.underlying_exception = underlying_exception
+        super().__init__(message)
+
+    def __str__(self):
+        if self.underlying_exception:
+            return f"{self.message}\nUnderlying Exception: {str(self.underlying_exception)}"
+        return self.message
+
+
 def extract_metadata(folder_path: str) -> None:
     """
     Extracts and removes metadata from all images in a folder.
@@ -59,8 +75,8 @@ def _extract_metadata(file_path: str) -> None:
                     _remove_exif(img)
 
             _write_to_json(img.filename, metadata)
-    except (AttributeError, FileNotFoundError, UnidentifiedImageError, ValueError, TypeError) as e:
-        log.error(f"Error while extracting metadata from {file_path}: {e}")
+    except (AttributeError, FileNotFoundError, TypeError) as e:
+        raise ExtractMetaError(f"Error while extracting metadata from {file_path}", e)
 
     return None
 
