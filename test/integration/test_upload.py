@@ -3,7 +3,7 @@ import zipfile
 from io import BytesIO
 
 import pytest
-from exif import app, ERR_NO_ZIP, ERR_NON_IMAGE_FILE
+from exif import app, ERR_NO_ZIP, ERR_NON_IMAGE_FILE, ERR_FILE_NAME, ERR_NO_FILES
 
 
 UPLOAD_ENDPOINT = "/upload"
@@ -31,12 +31,31 @@ def test_upload_file_no_zip(client, file_path):
     with open(file_path, "rb") as file:
         response = client.post(
             UPLOAD_ENDPOINT,
-            data={"image": (file, "image.jpg")},
+            data={"file": (file, "image.jpg", "image/jpeg")},
             content_type="multipart/form-data",
         )
 
     assert response.status_code == ERR_NO_ZIP[1]
     assert ERR_NO_ZIP[0] in str(response.data)
+
+
+def test_upload_misnamed_file(client):
+    with open(TEST_IMAGE_1, "rb") as file:
+        response = client.post(
+            UPLOAD_ENDPOINT,
+            data={"image": (file, "image.jpg", "image/jpeg")},
+            content_type="multipart/form-data",
+        )
+
+    assert response.status_code == ERR_FILE_NAME[1]
+    assert ERR_FILE_NAME[0] in str(response.data)
+
+
+def test_upload_missing_files(client):
+    response = client.post(UPLOAD_ENDPOINT)
+
+    assert response.status_code == ERR_NO_FILES[1]
+    assert ERR_NO_FILES[0] in str(response.data)
 
 
 def zip_folder_and_post(client, folder_path):
@@ -52,7 +71,7 @@ def zip_folder_and_post(client, folder_path):
 
     response = client.post(
         UPLOAD_ENDPOINT,
-        data={"file": (zip_buffer, "images.zip")},
+        data={"file": (zip_buffer, "images.zip", "application/zip")},
         content_type="multipart/form-data",
     )
 
