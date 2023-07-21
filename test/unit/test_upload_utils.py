@@ -1,6 +1,7 @@
 import os
 import io
 import shutil
+from contextlib import nullcontext as does_not_raise
 
 import pytest
 
@@ -13,6 +14,7 @@ from utils.upload_utils import (
     LargeZipError,
     FolderAlreadyExistsError,
     SaveZipFileError,
+    ZIP_SIZE_LIMIT_MB,
 )
 
 
@@ -65,3 +67,37 @@ def test_save_file_no_folder():
     file = create_in_memory_file("test_file.txt")
     with pytest.raises(SaveZipFileError):
         save_file(file, TEST_FOLDER)
+
+
+def create_file_of_size(size_in_mb: int) -> io.BytesIO:
+    size_in_bytes = size_in_mb * 1000 * 1000
+    in_memory_file = io.BytesIO()
+    in_memory_file.write(b"\x00" * size_in_bytes)
+    in_memory_file.seek(0)
+    return in_memory_file
+
+
+@pytest.mark.parametrize("file_size", [(1), (2), (10), (56), (99), (100)])
+def test_create_file_of_size(file_size):
+    """
+    Tests that create_file_of_size correctly creates a file of the correct size.
+    """
+    file = create_file_of_size(file_size)
+    assert file.getbuffer().nbytes / 1000000 == file_size
+
+
+@pytest.mark.parametrize(
+    "file_size, err",
+    [
+        (1, does_not_raise()),
+        (100, does_not_raise()),
+        (101, pytest.raises(LargeZipError)),
+    ],
+)
+def test_check_zip_size(file_size, err):
+    """
+    Tests that check_zip_size correctly checks the size of a zipfile.
+    """
+    file = create_file_of_size(file_size)
+    with err:
+        check_zip_size(file)
