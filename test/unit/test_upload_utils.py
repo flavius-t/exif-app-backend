@@ -12,6 +12,7 @@ from utils.upload_utils import (
     InvalidFileError,
     LargeZipError,
     FolderAlreadyExistsError,
+    SaveZipFileError,
 )
 
 
@@ -55,3 +56,12 @@ def test_save_file(file_name: str):
         assert os.path.exists(file_path)
     finally:
         shutil.rmtree(TEST_FOLDER)
+
+
+def test_save_file_no_folder():
+    """
+    Tests that save_file raises an error if the folder does not exist.
+    """
+    file = create_in_memory_file("test_file.txt")
+    with pytest.raises(SaveZipFileError):
+        save_file(file, TEST_FOLDER)
