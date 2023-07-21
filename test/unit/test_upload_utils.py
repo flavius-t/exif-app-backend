@@ -10,6 +10,7 @@ from utils.upload_utils import (
     save_file,
     check_zip_size,
     validate_zip_contents,
+    create_temp_folder,
     InvalidFileError,
     LargeZipError,
     FolderAlreadyExistsError,
@@ -101,3 +102,27 @@ def test_check_zip_size(file_size, err):
     file = create_file_of_size(file_size)
     with err:
         check_zip_size(file)
+
+
+def test_create_temp_folder():
+    """
+    Tests that create_temp_folder correctly creates a temporary folder.
+    """
+    req_id = "test_req_id"
+    base_folder, imgs_folder = create_temp_folder(req_id)
+    try:
+        assert os.path.exists(base_folder)
+        assert os.path.exists(imgs_folder)
+    finally:
+        shutil.rmtree(base_folder)
+
+
+def test_create_temp_folder_raises():
+    """
+    Tests that create_temp_folder raises an error if the folder already exists.
+    """
+    req_id = "test_req_id"
+    base_folder, _ = create_temp_folder(req_id)
+    with pytest.raises(FolderAlreadyExistsError):
+        create_temp_folder(req_id)
+    shutil.rmtree(base_folder)
