@@ -1,7 +1,7 @@
 import json
 import os
 import logging
-from PIL import ExifTags, Image, UnidentifiedImageError
+from PIL import ExifTags, Image
 
 
 log = logging.getLogger(__name__)
@@ -38,10 +38,6 @@ def extract_metadata(folder_path: str) -> None:
         ValueError: if any file in folder is not an image file
     """
     for file in os.listdir(folder_path):
-        _, file_extension = os.path.splitext(file)
-        if not file_extension[1:] in ALLOWED_EXTENSIONS:
-            raise TypeError(f"File {file} is not an image file")
-
         _extract_metadata(os.path.join(folder_path, file))
 
 

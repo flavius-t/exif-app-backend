@@ -137,19 +137,19 @@ def test_extract_metadata_raises(arg):
 
 
 @pytest.mark.parametrize(
-    "folder_contents, err, call_count",
+    "folder_contents",
     [
-        ([], does_not_raise(), 0),
-        (["file1.jpg"], does_not_raise(), 1),
-        (["file1.png", "file2.jpg"], does_not_raise(), 2),
-        (["file1.png", "file2.jpg", "file3.txt"], pytest.raises(TypeError), 2),
+        ([]),
+        (["file1.jpg"]),
+        (["file1.png"]),
+        (["file1.jpg", "file2.jpg"]),
+        (["file1.png", "file2.jpg"]),
     ],
 )
-def test_extract_metadata_folder(folder_contents, err, call_count):
+def test_extract_metadata_folder(folder_contents):
     with patch("utils.extract_meta._extract_metadata") as mock_extract, patch(
         "os.listdir"
     ) as mock_listdir:
         mock_listdir.return_value = folder_contents
-        with err:
-            extract_metadata("dummy_folder")
-        assert mock_extract.call_count == call_count
+        extract_metadata("dummy_folder")
+        assert mock_extract.call_count == len(folder_contents)

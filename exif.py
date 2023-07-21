@@ -1,17 +1,28 @@
-import os
 import shutil
 import uuid
 import logging
+import zipfile
+from io import BytesIO
 
 from flask import Flask, request, send_file, make_response
 from flask_cors import CORS
 from utils.extract_meta import extract_metadata, ExtractMetaError
 from utils.zip import unzip_file, zip_files, ZipError
-from utils.constants import UPLOAD_FOLDER, ZIP_NAME
+from utils.upload_utils import (
+    validate_zip_contents,
+    check_zip_size,
+    save_zipfile,
+    create_temp_folder,
+    InvalidFileError,
+    LargeZipError,
+    FolderAlreadyExistsError,
+    ZIP_SIZE_LIMIT_MB,
+)
 
 
 app = Flask(__name__)
 CORS(app)
+
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -20,6 +31,7 @@ log = logging.getLogger(__name__)
 
 
 ERR_NO_FILES = "No files contained in request", 400
+ERR_FILE_NAME = "Expected attached file to be named 'file'", 400
 ERR_NO_ZIP = "Request is missing zipfile", 400
 ERR_TEMP_FOLDER = (
     "Internal error occured while processing images: failed to create temp folder",
@@ -34,27 +46,11 @@ ERR_EXTRACT_META = (
     "Internal error occured while processing images: failed to extract metadata from images",
     500,
 )
-
-
-def save_zipfile(file, folder: str):
-    zip_path = os.path.join(folder, ZIP_NAME)
-    file.save(zip_path)
-    file.close()
-    return zip_path
-
-
-def create_temp_folder(req_id: str):
-    base_folder = f"{UPLOAD_FOLDER}/{req_id}"
-    imgs_folder = f"{base_folder}/images"
-    try:
-        os.makedirs(imgs_folder)
-    except OSError as e:
-        log.error(
-            f"request {req_id}: could not create folder {imgs_folder} -- folder already exists"
-        )
-        raise e
-
-    return base_folder, imgs_folder
+ERR_ZIP_SIZE_LIMIT = (
+    f"Zip file exceeds size limit of {ZIP_SIZE_LIMIT_MB} MB",
+    400,
+)
+ERR_ZIP_CORRUPT = "Zip file is corrupted", 400
 
 
 @app.route("/upload", methods=["POST"])
@@ -63,24 +59,38 @@ def handle_upload():
     log.info(f"Received new upload, assigning request_id {req_id}")
 
     if not request.files:
-        log.error(f"request {req_id}: no files uploaded")
+        log.error(f"request {req_id}: request contains no files")
         return ERR_NO_FILES
 
-    if "file" not in request.files:
-        log.error(f"request {req_id}: zipfile is missing from request.files")
+    file = request.files.get("file")
+
+    if file is None:
+        log.error(f"request {req_id}: expected file named 'file' not present")
+        return ERR_FILE_NAME
+
+    if file.mimetype != "application/zip":
         return ERR_NO_ZIP
 
-    file = request.files["file"]
-
-    # TODO: validate and sanitize zipfile contents before saving
-
-    log.info(f"request {req_id}: creating temp folder")
     try:
+        log.info(f"request {req_id}: creating temp folder")
         base_folder, imgs_folder = create_temp_folder(req_id)
-    except OSError:
+    except FolderAlreadyExistsError as e:
+        log.error(
+            f"request {req_id}: could not create temp folder '{imgs_folder}' as it already exists -> {e}"
+        )
         return ERR_TEMP_FOLDER
 
     try:
+        zip_buffer = BytesIO(file.read())
+        log.info(f"request {req_id}: checking zipfile size")
+        check_zip_size(zip_buffer)
+
+        log.info(f"request {req_id}: validating zipfile contents")
+        validate_zip_contents(zip_buffer)
+
+        zip_buffer.close()
+        file.seek(0)
+
         log.info(f"request {req_id}: saving zipfile to temp folder")
         zip_path = save_zipfile(file, base_folder)
 
@@ -106,9 +116,15 @@ def handle_upload():
         response = make_response(response)
         response.headers["X-Request-Id"] = req_id
         response.headers["Access-Control-Expose-Headers"] = "X-Request-Id"
-    except TypeError as e:
-        log.error(f"request {req_id}: found non-image file in zipfile -> {e}")
-        response = ERR_NON_IMAGE_FILE
+    except LargeZipError as e:
+        log.error(f"request {req_id}: zipfile exceeds size limit -> {e}")
+        return ERR_ZIP_SIZE_LIMIT
+    except InvalidFileError as e:
+        log.error(f"request {req_id}: found disallowed file type in zipfile -> {e}")
+        return ERR_NON_IMAGE_FILE
+    except zipfile.BadZipFile as e:
+        log.error(f"request {req_id}: zipfile {file} is corrupted -> {e}")
+        return ERR_ZIP_CORRUPT
     except ZipError as e:
         log.error(f"request {req_id}: failed to zip files into memory -> {e}")
         response = ERR_ZIP_TO_MEMORY
