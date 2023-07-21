@@ -27,6 +27,10 @@ class FolderAlreadyExistsError(Exception):
     pass
 
 
+class SaveZipFileError(Exception):
+    pass
+
+
 def validate_zip_contents(zip_file: BytesIO) -> None:
     """
     Validates that all files in a zipfile are image files.
@@ -63,20 +67,32 @@ def check_zip_size(zip_file: BytesIO) -> None:
         raise LargeZipError(f"Zip file exceeds size limit of {ZIP_SIZE_LIMIT_MB} bytes")
 
 
-def save_zipfile(file: FileStorage, folder: str) -> str:
+def save_file(file: FileStorage, folder: str) -> str:
     """
-    Saves a zipfile to a folder.
+    Saves an in-memory file to a folder.
 
     Args:
-        file (FileStorage): zipfile to save
+        file (FileStorage): file to save
+        filename (str): name of file
+        folder (str): folder to save file to
 
     Returns:
-        str: path to saved zipfile
+        str: path to saved file
     """
-    zip_path = os.path.join(folder, ZIP_NAME)
-    file.save(zip_path)
+    # zip_path = os.path.join(folder, ZIP_NAME)
+
+    file_path = os.path.join(folder, file.filename)
+
+    try:
+        file.save(file_path)
+    except FileNotFoundError as e:
+        log.error(
+            f"FileNotFoundError: failed to save file '{file.filename}' - target directory '{folder}' likely does not exist"
+        )
+        raise SaveZipFileError(f"Failed to save file '{file.filename}' -> {e}") from e
+
     file.close()
-    return zip_path
+    return file_path
 
 
 def create_temp_folder(req_id: str) -> tuple[str, str]:

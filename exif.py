@@ -6,16 +6,19 @@ from io import BytesIO
 
 from flask import Flask, request, send_file, make_response
 from flask_cors import CORS
+
+from utils.constants import ZIP_NAME
 from utils.extract_meta import extract_metadata, ExtractMetaError
 from utils.zip import unzip_file, zip_files, ZipError
 from utils.upload_utils import (
     validate_zip_contents,
     check_zip_size,
-    save_zipfile,
+    save_file,
     create_temp_folder,
     InvalidFileError,
     LargeZipError,
     FolderAlreadyExistsError,
+    SaveZipFileError,
     ZIP_SIZE_LIMIT_MB,
 )
 
@@ -51,6 +54,7 @@ ERR_ZIP_SIZE_LIMIT = (
     400,
 )
 ERR_ZIP_CORRUPT = "Zip file is corrupted", 400
+ERR_SAVE_ZIP = "Internal error occured while processing images: failed to save zipfile", 500
 
 
 @app.route("/upload", methods=["POST"])
@@ -92,7 +96,7 @@ def handle_upload():
         file.seek(0)
 
         log.info(f"request {req_id}: saving zipfile to temp folder")
-        zip_path = save_zipfile(file, base_folder)
+        zip_path = save_file(file, base_folder)
 
         log.info(f"request {req_id}: unzipping images")
         unzip_file(zip_path, imgs_folder)
@@ -108,7 +112,7 @@ def handle_upload():
                 zip_buffer,
                 as_attachment=True,
                 mimetype="application/zip",
-                download_name="images.zip",
+                download_name=ZIP_NAME,
             ),
             200,
         )
@@ -125,6 +129,9 @@ def handle_upload():
     except zipfile.BadZipFile as e:
         log.error(f"request {req_id}: zipfile {file} is corrupted -> {e}")
         return ERR_ZIP_CORRUPT
+    except SaveZipFileError as e:
+        log.error(f"request {req_id}: failed to save zipfile -> {e}")
+        return ERR_SAVE_ZIP
     except ZipError as e:
         log.error(f"request {req_id}: failed to zip files into memory -> {e}")
         response = ERR_ZIP_TO_MEMORY
