@@ -48,8 +48,8 @@ def validate_zip_contents(zip_file: BytesIO) -> None:
                 _, file_extension = os.path.splitext(file)
                 if not file_extension[1:] in ALLOWED_EXTENSIONS:
                     raise InvalidFileError(f"File {file} is not an image file")
-    except zipfile.BadZipFile as e:
-        log.error(f"BadZipFile: zipfile {file} is corrupted -> {e}")
+    except (zipfile.BadZipFile) as e:
+        log.error(f"BadZipFile: zipfile is corrupted -> {e}")
         raise e
 
 
