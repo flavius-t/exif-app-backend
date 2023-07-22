@@ -1,7 +1,7 @@
 import json
 import os
 import logging
-from PIL import ExifTags, Image
+from PIL import ExifTags, Image, UnidentifiedImageError
 
 
 log = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ def _extract_metadata(file_path: str) -> None:
                     _remove_exif(img)
 
             _write_to_json(img.filename, metadata)
-    except (AttributeError, FileNotFoundError, TypeError) as e:
+    except (AttributeError, FileNotFoundError, TypeError, UnidentifiedImageError) as e:
         raise ExtractMetaError(f"Error while extracting metadata from {file_path}", e)
 
     return None
