@@ -1,3 +1,19 @@
+"""
+Utility functions for uploading files.
+
+Functions:
+    validate_zip_contents(zip_file: BytesIO) -> None
+    check_zip_size(zip_file: BytesIO) -> None
+    save_file(file: FileStorage, folder: str) -> str
+    create_temp_folder(req_id: str) -> tuple[str, str]
+
+Exceptions:
+    InvalidFileError(Exception)
+    LargeZipError(Exception)
+    FolderAlreadyExistsError(Exception)
+    SaveZipFileError(Exception)
+"""
+
 import os
 import zipfile
 import logging
@@ -5,29 +21,41 @@ from io import BytesIO
 
 from werkzeug.datastructures import FileStorage
 
-from utils.constants import UPLOAD_FOLDER, ZIP_NAME
+from utils.constants import UPLOAD_FOLDER, ALLOWED_EXTENSIONS, ZIP_SIZE_LIMIT_MB
 
 
 log = logging.getLogger(__name__)
 
 
-ALLOWED_EXTENSIONS = set(["jpg", "jpeg", "png"])
-ZIP_SIZE_LIMIT_MB = 100  # 100 MB
-
-
 class InvalidFileError(Exception):
+    """
+    Exception raised for non-image files in uploaded zipfile.
+    """
+
     pass
 
 
 class LargeZipError(Exception):
+    """
+    Exception raised for zipfiles over the size limit.
+    """
+
     pass
 
 
 class FolderAlreadyExistsError(Exception):
+    """
+    Exception raised for when a request's temporary already exists previous to request.
+    """
+
     pass
 
 
 class SaveZipFileError(Exception):
+    """
+    Exception raised for when a request's zipfile cannot be saved to disk.
+    """
+
     pass
 
 
@@ -48,7 +76,7 @@ def validate_zip_contents(zip_file: BytesIO) -> None:
                 _, file_extension = os.path.splitext(file)
                 if not file_extension[1:] in ALLOWED_EXTENSIONS:
                     raise InvalidFileError(f"File {file} is not an image file")
-    except (zipfile.BadZipFile) as e:
+    except zipfile.BadZipFile as e:
         log.error(f"BadZipFile: zipfile is corrupted -> {e}")
         raise e
 
@@ -79,8 +107,6 @@ def save_file(file: FileStorage, folder: str) -> str:
     Returns:
         str: path to saved file
     """
-    # zip_path = os.path.join(folder, ZIP_NAME)
-
     file_path = os.path.join(folder, file.filename)
 
     try:

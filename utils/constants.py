@@ -10,3 +10,6 @@ ZIP_NAME = "images.zip"
 
 # file extensions accepted by /upload endpoint
 ALLOWED_EXTENSIONS = set(["jpg", "jpeg", "png"])
+
+# maximum size of zip file accepted by /upload endpoint in MB
+ZIP_SIZE_LIMIT_MB = 100
