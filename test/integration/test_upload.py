@@ -1,3 +1,7 @@
+"""
+Integration tests for the /upload endpoint.
+"""
+
 import os
 import zipfile
 import shutil
@@ -5,6 +9,8 @@ from io import BytesIO
 from unittest.mock import patch
 
 import pytest
+from flask.testing import FlaskClient
+
 from exif import (
     app,
     ERR_NO_ZIP,
@@ -43,7 +49,14 @@ def create_app():
 
 
 @pytest.mark.parametrize("file_path", [TEST_IMAGE_1])
-def test_upload_file_no_zip(client, file_path):
+def test_upload_file_no_zip(client: FlaskClient, file_path: str):
+    """
+    Test that the upload endpoint returns an error if the posted file MIME type is not a zip.
+
+    Args:
+        client (FlaskClient): Flask test client
+        file_path (str): path to file to post
+    """
     with open(file_path, "rb") as file:
         response = client.post(
             UPLOAD_ENDPOINT,
@@ -55,7 +68,13 @@ def test_upload_file_no_zip(client, file_path):
     assert ERR_NO_ZIP[0] in str(response.data)
 
 
-def test_upload_misnamed_file(client):
+def test_upload_misnamed_file(client: FlaskClient):
+    """
+    Test that the upload endpoint returns an error if the posted file's name is not "file".
+
+    Args:
+        client (FlaskClient): Flask test client
+    """
     with open(TEST_IMAGE_1, "rb") as file:
         response = client.post(
             UPLOAD_ENDPOINT,
@@ -67,14 +86,30 @@ def test_upload_misnamed_file(client):
     assert ERR_FILE_NAME[0] in str(response.data)
 
 
-def test_upload_missing_files(client):
+def test_upload_missing_files(client: FlaskClient):
+    """
+    Test that the upload endpoint returns an error if no files are posted.
+
+    Args:
+        client (FlaskClient): Flask test client
+    """
     response = client.post(UPLOAD_ENDPOINT)
 
     assert response.status_code == ERR_NO_FILES[1]
     assert ERR_NO_FILES[0] in str(response.data)
 
 
-def zip_folder_and_post(client, folder_path):
+def zip_folder_and_post(client: FlaskClient, folder_path: str) -> BytesIO:
+    """
+    Zips a folder and posts it to the upload endpoint.
+
+    Args:
+        client (FlaskClient): Flask test client
+        folder_path (str): path to folder to zip
+
+    Returns:
+        BytesIO: response data
+    """
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(folder_path):
@@ -101,7 +136,14 @@ def zip_folder_and_post(client, folder_path):
         TEST_VALID_MULTIPLE,
     ],
 )
-def test_upload_valid_zipped(client, folder_path):
+def test_upload_valid_zipped(client: FlaskClient, folder_path: str):
+    """
+    Test that the upload endpoint correctly handles a valid zip file.
+
+    Args:
+        client (FlaskClient): Flask test client
+        folder_path (str): path to folder to zip
+    """
     response = zip_folder_and_post(client, folder_path)
 
     assert response.status_code == 200
@@ -117,14 +159,27 @@ def test_upload_valid_zipped(client, folder_path):
 
 
 @pytest.mark.parametrize("folder_path", [TEST_INVALID_ONLY, TEST_INVALID_MIX])
-def test_upload_invalid_zipped(client, folder_path):
+def test_upload_invalid_zipped(client: FlaskClient, folder_path: str):
+    """
+    Test that the upload endpoint correctly handles an invalid zip file.
+
+    Args:
+        client (FlaskClient): Flask test client
+        folder_path (str): path to folder to zip
+    """
     response = zip_folder_and_post(client, folder_path)
 
     assert response.status_code == ERR_NON_IMAGE_FILE[1]
     assert ERR_NON_IMAGE_FILE[0] in str(response.data)
 
 
-def test_upload_large_zip(client):
+def test_upload_large_zip(client: FlaskClient):
+    """
+    Test that the upload endpoint correctly handles a zip file that is too large.
+
+    Args:
+        client (FlaskClient): Flask test client
+    """
     zip_buffer = create_file_of_size(ZIP_SIZE_LIMIT_MB + 1)
 
     response = client.post(
@@ -137,7 +192,13 @@ def test_upload_large_zip(client):
     assert ERR_ZIP_SIZE_LIMIT[0] in str(response.data)
 
 
-def test_upload_corrupted_zip(client):
+def test_upload_corrupted_zip(client: FlaskClient):
+    """
+    Test that the upload endpoint correctly handles a corrupted zip file.
+
+    Args:
+        client (FlaskClient): Flask test client
+    """
     zip_buffer = BytesIO(b"corrupted")
 
     response = client.post(
@@ -150,7 +211,13 @@ def test_upload_corrupted_zip(client):
     assert ERR_ZIP_CORRUPT[0] in str(response.data)
 
 
-def test_temp_folder_already_exists(client):
+def test_temp_folder_already_exists(client: FlaskClient):
+    """
+    Test that the upload endpoint correctly handles a temporary folder that already exists.
+
+    Args:
+        client (FlaskClient): Flask test client
+    """
     mock_req_id = "12345"
 
     try:
@@ -167,14 +234,26 @@ def test_temp_folder_already_exists(client):
         shutil.rmtree(os.path.join(UPLOAD_FOLDER, mock_req_id))
 
 
-def test_upload_empty_zip(client):
+def test_upload_empty_zip(client: FlaskClient):
+    """
+    Test that the upload endpoint correctly handles an empty zip file.
+
+    Args:
+        client (FlaskClient): Flask test client
+    """
     response = zip_folder_and_post(client, TEST_EMPTY)
 
     assert response.status_code == ERR_UNZIP_FILE[1]
     assert ERR_UNZIP_FILE[0] in str(response.data)
 
 
-def test_upload_invalid_image_file(client):
+def test_upload_invalid_image_file(client: FlaskClient):
+    """
+    Test that the upload endpoint correctly handles an invalid image file.
+
+    Args:
+        client (FlaskClient): Flask test client
+    """
     file_name = "invalid_image.jpg"
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
