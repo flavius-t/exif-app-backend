@@ -1,3 +1,16 @@
+"""
+Helper functions for extracting metadata from images.
+
+Functions:
+    extract_metadata(folder_path: str) -> None
+    _extract_metadata(file_path: str) -> None
+    _remove_exif(img: Image) -> None
+    _write_to_json(filename: str, metadata: dict) -> None
+
+Exceptions:
+    ExtractMetaError(Exception)
+"""
+
 import json
 import os
 import logging
@@ -8,15 +21,17 @@ log = logging.getLogger(__name__)
 logging.getLogger("PIL").setLevel(logging.INFO)
 
 
-ALLOWED_EXTENSIONS = set(["jpg", "jpeg", "png"])
-
-
 class ExtractMetaError(Exception):
     """
     Exception raised for errors related to extracting metadata from images.
     """
 
-    def __init__(self, message, underlying_exception=None):
+    def __init__(self, message: str, underlying_exception: Exception = None):
+        """
+        Args:
+            message (str): explanation of the error
+            underlying_exception (Exception): the exception that caused this exception
+        """
         self.message = "Error occurred while extracting metadata from image: " + message
         self.underlying_exception = underlying_exception
         super().__init__(message)
@@ -47,6 +62,9 @@ def _extract_metadata(file_path: str) -> None:
 
     Args:
         file_path (str): path to image file
+
+    Raises:
+        ExtractMetaError: if an error occurs while extracting metadata
     """
     log.debug(f"Extracting metadata from {file_path}")
 
@@ -77,7 +95,16 @@ def _extract_metadata(file_path: str) -> None:
     return None
 
 
-def _remove_exif(img: Image):
+def _remove_exif(img: Image) -> None:
+    """
+    Removes exif data from an image.
+
+    Args:
+        img (Image): PIL Image object
+
+    Raises:
+        TypeError: if img is not a PIL Image object
+    """
     if not isinstance(img, Image.Image):
         raise TypeError("Image must be a PIL Image object")
 
@@ -92,6 +119,9 @@ def _write_to_json(filename: str, metadata: dict):
 
     Args:
         filename (str): path to image file
+
+    Raises:
+        TypeError: if metadata is not a dictionary
     """
     if not isinstance(metadata, dict):
         raise TypeError("Metadata must be a dictionary")
