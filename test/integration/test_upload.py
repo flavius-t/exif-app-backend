@@ -14,6 +14,7 @@ from exif import (
     ERR_ZIP_SIZE_LIMIT,
     ERR_ZIP_CORRUPT,
     ERR_TEMP_FOLDER,
+    ERR_UNZIP_FILE,
 )
 from test.testing_utils import create_file_of_size
 from utils.upload_utils import ZIP_SIZE_LIMIT_MB
@@ -163,3 +164,10 @@ def test_temp_folder_already_exists(client):
             assert ERR_TEMP_FOLDER[0] in str(response.data)
     finally:
         shutil.rmtree(os.path.join(UPLOAD_FOLDER, mock_req_id))
+
+
+def test_upload_empty_zip(client):
+    response = zip_folder_and_post(client, TEST_EMPTY)
+
+    assert response.status_code == ERR_UNZIP_FILE[1]
+    assert ERR_UNZIP_FILE[0] in str(response.data)
