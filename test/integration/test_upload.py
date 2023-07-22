@@ -3,7 +3,15 @@ import zipfile
 from io import BytesIO
 
 import pytest
-from exif import app, ERR_NO_ZIP, ERR_NON_IMAGE_FILE, ERR_FILE_NAME, ERR_NO_FILES, ERR_ZIP_SIZE_LIMIT
+from exif import (
+    app,
+    ERR_NO_ZIP,
+    ERR_NON_IMAGE_FILE,
+    ERR_FILE_NAME,
+    ERR_NO_FILES,
+    ERR_ZIP_SIZE_LIMIT,
+    ERR_ZIP_CORRUPT,
+)
 from test.testing_utils import create_file_of_size
 from utils.upload_utils import ZIP_SIZE_LIMIT_MB
 
@@ -121,3 +129,16 @@ def test_upload_large_zip(client):
 
     assert response.status_code == ERR_ZIP_SIZE_LIMIT[1]
     assert ERR_ZIP_SIZE_LIMIT[0] in str(response.data)
+
+
+def test_upload_corrupted_zip(client):
+    zip_buffer = BytesIO(b"corrupted")
+
+    response = client.post(
+        UPLOAD_ENDPOINT,
+        data={"file": (zip_buffer, "images.zip", "application/zip")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == ERR_ZIP_CORRUPT[1]
+    assert ERR_ZIP_CORRUPT[0] in str(response.data)
