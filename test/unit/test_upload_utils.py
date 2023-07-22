@@ -1,11 +1,13 @@
 import os
 import io
 import shutil
+import zipfile
 from contextlib import nullcontext as does_not_raise
 
 import pytest
 
 from werkzeug.datastructures import FileStorage
+from test.testing_utils import create_text_files, create_image_files, create_mixed_files
 from utils.upload_utils import (
     save_file,
     check_zip_size,
@@ -126,3 +128,38 @@ def test_create_temp_folder_raises():
     with pytest.raises(FolderAlreadyExistsError):
         create_temp_folder(req_id)
     shutil.rmtree(base_folder)
+
+
+@pytest.mark.parametrize(
+    "create_files, num_files, err",
+    [
+        (create_text_files, 0, does_not_raise()),
+        (create_image_files, 0, does_not_raise()),
+        (create_mixed_files, 0, does_not_raise()),
+        (create_image_files, 1, does_not_raise()),
+        (create_text_files, 1, pytest.raises(InvalidFileError)),
+        (create_mixed_files, 1, pytest.raises(InvalidFileError)),
+    ],
+)
+def test_validate_zip_contents(create_files, num_files, err):
+    """
+    Tests that validate_zip_contents correctly validates a zipfile.
+    """
+    os.mkdir(TEST_FOLDER)
+
+    try:
+        create_files(num_files, TEST_FOLDER)
+
+        zip_file = io.BytesIO()
+        with zipfile.ZipFile(zip_file, "w") as zip:
+            for file in os.listdir(TEST_FOLDER):
+                zip.write(os.path.join(TEST_FOLDER, file), file)
+
+        zip_file.seek(0)
+
+        with err:
+            validate_zip_contents(zip_file)
+
+        zip_file.close()
+    finally:
+        shutil.rmtree(TEST_FOLDER)
