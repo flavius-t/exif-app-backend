@@ -1,3 +1,10 @@
+"""
+Helper methods for determining MIME types of files.
+
+Functions:
+    get_mime_type(file_path: str) -> str
+"""
+
 import os
 
 
@@ -9,12 +16,15 @@ MIME_TYPES = {
 }
 
 
-def get_mime_type(file_path: str):
+def get_mime_type(file_path: str) -> str:
     """
     Returns the MIME type of a file based on its extension.
 
     Args:
         file_path (str): path to file
+
+    Returns:
+        str: MIME type of file
 
     Raises:
         ValueError: if file is not accepted file type (image or json)
