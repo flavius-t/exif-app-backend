@@ -15,6 +15,7 @@ from exif import (
     ERR_ZIP_CORRUPT,
     ERR_TEMP_FOLDER,
     ERR_UNZIP_FILE,
+    ERR_EXTRACT_META,
 )
 from test.testing_utils import create_file_of_size
 from utils.upload_utils import ZIP_SIZE_LIMIT_MB
@@ -171,3 +172,21 @@ def test_upload_empty_zip(client):
 
     assert response.status_code == ERR_UNZIP_FILE[1]
     assert ERR_UNZIP_FILE[0] in str(response.data)
+
+
+def test_upload_invalid_image_file(client):
+    file_name = "invalid_image.jpg"
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        zipf.writestr(file_name, b"invalid image data")
+
+    zip_buffer.seek(0)
+
+    response = client.post(
+        UPLOAD_ENDPOINT,
+        data={"file": (zip_buffer, "images.zip", "application/zip")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == ERR_EXTRACT_META[1]
+    assert ERR_EXTRACT_META[0] in str(response.data)
