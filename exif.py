@@ -79,9 +79,7 @@ def handle_upload():
         log.info(f"request {req_id}: creating temp folder")
         base_folder, imgs_folder = create_temp_folder(req_id)
     except FolderAlreadyExistsError as e:
-        log.error(
-            f"request {req_id}: could not create temp folder '{imgs_folder}' as it already exists -> {e}"
-        )
+        log.error(f"request {req_id}: could not create temp folder as it already exists -> {e}")
         return ERR_TEMP_FOLDER
 
     try:
