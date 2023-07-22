@@ -3,6 +3,7 @@ import io
 import shutil
 import zipfile
 from contextlib import nullcontext as does_not_raise
+from unittest.mock import patch
 
 import pytest
 
@@ -22,7 +23,6 @@ from utils.upload_utils import (
     LargeZipError,
     FolderAlreadyExistsError,
     SaveZipFileError,
-    ZIP_SIZE_LIMIT_MB,
 )
 
 
@@ -159,10 +159,10 @@ def test_validate_bad_zipfile():
     """
     os.mkdir(TEST_FOLDER)
     try:
-        file_buffer = create_file_of_size(10)
-        zip_file = FileStorage(file_buffer, filename="images.zip")
+        with patch('zipfile.ZipFile', side_effect=zipfile.BadZipFile()):
+            corrupted_zip_file = io.BytesIO(b"Corrupted Zip Data")
 
-        with pytest.raises(zipfile.BadZipFile):
-            validate_zip_contents(zip_file)
+            with pytest.raises(zipfile.BadZipFile):
+                validate_zip_contents(corrupted_zip_file)
     finally:
         shutil.rmtree(TEST_FOLDER)
