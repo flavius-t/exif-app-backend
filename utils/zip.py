@@ -1,3 +1,15 @@
+"""
+This module contains functions for zipping and unzipping files.
+
+Functions:
+    unzip_file(zip_path: str, extract_dir: str) -> None
+    zip_files(folder_path: str) -> BytesIO
+
+Exceptions:
+    UnzipError(Exception)
+    ZipError(Exception)
+"""
+
 import zipfile
 import os
 import io
@@ -14,7 +26,7 @@ class UnzipError(Exception):
     Exception raised for errors related to unzipping files.
     """
 
-    def __init__(self, message, underlying_exception=None):
+    def __init__(self, message: str, underlying_exception: Exception = None):
         self.message = "Error occurred while unzipping images: " + message
         self.underlying_exception = underlying_exception
         super().__init__(message)
@@ -30,7 +42,7 @@ class ZipError(Exception):
     Exception raised for errors related to zipping files.
     """
 
-    def __init__(self, message, underlying_exception=None):
+    def __init__(self, message: str, underlying_exception: Exception = None):
         self.message = "Error occurred while zipping images: " + message
         self.underlying_exception = underlying_exception
         super().__init__(message)
@@ -41,7 +53,17 @@ class ZipError(Exception):
         return self.message
 
 
-def unzip_file(zip_path, extract_dir):
+def unzip_file(zip_path: str, extract_dir: str) -> None:
+    """
+    Unzips a zip file (on-disk) to a specified directory.
+
+    Args:
+        zip_path (str): path to zip file
+        extract_dir (str): path to directory to extract zip file to
+
+    Raises:
+        UnzipError: if an error occurs while unzipping
+    """
     try:
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             if zip_ref.namelist() == []:
@@ -61,24 +83,30 @@ def unzip_file(zip_path, extract_dir):
         raise UnzipError("", e)
 
 
-def zip_files(folder_path: str):
-    # Ensure folder path is valid
+def zip_files(folder_path: str) -> io.BytesIO:
+    """
+    Zips all files in a folder (on-disk) to a zipfile (in-memory).
+
+    Args:
+        folder_path (str): path to folder containing files to zip
+
+    Returns:
+        io.BytesIO: in-memory zipfile
+
+    Raises:
+        ZipError: if an error occurs while zipping
+    """
     if not os.path.exists(folder_path):
         log.error(f"Folder '{folder_path}' does not exist.")
         raise ZipError(f"Could not zip images. Folder '{folder_path}' does not exist.")
 
-    # write files to zipfile in-memory
     buffer = io.BytesIO()
 
     try:
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
-            # Walk through all files and subdirectories
             for root, _, files in os.walk(folder_path):
                 for file in files:
-                    # Get absolute file path
                     file_path = os.path.join(root, file)
-
-                    # Add file to zip
                     zipf.write(file_path, arcname=os.path.relpath(file_path, folder_path))
 
                     # set mime type
