@@ -1,6 +1,8 @@
 import os
 import zipfile
+import shutil
 from io import BytesIO
+from unittest.mock import patch
 
 import pytest
 from exif import (
@@ -11,9 +13,11 @@ from exif import (
     ERR_NO_FILES,
     ERR_ZIP_SIZE_LIMIT,
     ERR_ZIP_CORRUPT,
+    ERR_TEMP_FOLDER,
 )
 from test.testing_utils import create_file_of_size
 from utils.upload_utils import ZIP_SIZE_LIMIT_MB
+from utils.constants import UPLOAD_FOLDER
 
 
 UPLOAD_ENDPOINT = "/upload"
@@ -142,3 +146,20 @@ def test_upload_corrupted_zip(client):
 
     assert response.status_code == ERR_ZIP_CORRUPT[1]
     assert ERR_ZIP_CORRUPT[0] in str(response.data)
+
+
+def test_temp_folder_already_exists(client):
+    mock_req_id = "12345"
+
+    try:
+        with patch("uuid.uuid4", return_value=mock_req_id):
+            temp_folder = os.path.join(UPLOAD_FOLDER, mock_req_id, "images")
+            os.makedirs(temp_folder)
+            assert os.path.exists(temp_folder)
+
+            response = zip_folder_and_post(client, TEST_VALID_SINGLE)
+
+            assert response.status_code == ERR_TEMP_FOLDER[1]
+            assert ERR_TEMP_FOLDER[0] in str(response.data)
+    finally:
+        shutil.rmtree(os.path.join(UPLOAD_FOLDER, mock_req_id))
