@@ -1,3 +1,7 @@
+"""
+Unit tests for zip.py
+"""
+
 import pytest
 import os
 import shutil
@@ -17,7 +21,14 @@ ZIP_EXTRACTION_FOLDER = "test_zip_extract"
     "create_files, num_files",
     [(create_text_files, 3), (create_mixed_files, 3)],
 )
-def test_zip_files_illegal(create_files, num_files):
+def test_zip_files_illegal(create_files, num_files: int):
+    """
+    Test that zip_files raises an error if a non-image file is zipped.
+
+    Args:
+        create_files (function): function to create files
+        num_files (int): number of files to create
+    """
     os.mkdir(TEST_FILES_FOLDER)
     try:
         create_files(num_files, TEST_FILES_FOLDER)
@@ -31,7 +42,13 @@ def test_zip_files_illegal(create_files, num_files):
 
 
 @pytest.mark.parametrize("num_files", [3, 1, 0])
-def test_zip_files_legal(num_files):
+def test_zip_files_legal(num_files: int):
+    """
+    Test that zip_files correctly zips a folder of image files.
+
+    Args:
+        num_files (int): number of files to create
+    """
     os.mkdir(TEST_FILES_FOLDER)
     try:
         create_image_files(num_files, TEST_FILES_FOLDER)
@@ -49,6 +66,9 @@ def test_zip_files_legal(num_files):
 
 
 def test_zip_files_invalid_folder():
+    """
+    Test that zip_files raises an error if the folder does not exist.
+    """
     with pytest.raises(ZipError) as e:
         zip_files("invalid_folder")
         assert "FileNotFound" in str(e.value)
@@ -57,7 +77,14 @@ def test_zip_files_invalid_folder():
 @pytest.mark.parametrize(
     "num_files, err", [(3, does_not_raise()), (1, does_not_raise()), (0, pytest.raises(UnzipError))]
 )
-def test_unzip_files(num_files, err):
+def test_unzip_files(num_files: int, err):
+    """
+    Test that unzip_files correctly unzips a zipfile.
+
+    Args:
+        num_files (int): number of mock files to create
+        err (Exception): expected exception
+    """
     os.mkdir(TEST_FILES_FOLDER)
     try:
         with err:
@@ -81,12 +108,18 @@ def test_unzip_files(num_files, err):
 
 
 def test_unzip_files_bad_path():
+    """
+    Test that unzip_files raises an error if the zipfile does not exist.
+    """
     with pytest.raises(UnzipError) as e:
         unzip_file("bad_path", "bad_path")
         assert "Zip file not found" in str(e.value)
 
 
 def test_unzip_non_zip_file():
+    """
+    Test that unzip_files raises an error if the file is not a zipfile.
+    """
     os.mkdir(TEST_FILES_FOLDER)
     try:
         file_path = os.path.join(TEST_FILES_FOLDER, "test.txt")
