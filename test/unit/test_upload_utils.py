@@ -151,3 +151,18 @@ def test_validate_zip_contents(create_files, num_files, err):
         zip_file.close()
     finally:
         shutil.rmtree(TEST_FOLDER)
+
+
+def test_validate_bad_zipfile():
+    """
+    Tests that validate_zip_contents correctly validates a zipfile.
+    """
+    os.mkdir(TEST_FOLDER)
+    try:
+        file_buffer = create_file_of_size(10)
+        zip_file = FileStorage(file_buffer, filename="images.zip")
+
+        with pytest.raises(zipfile.BadZipFile):
+            validate_zip_contents(zip_file)
+    finally:
+        shutil.rmtree(TEST_FOLDER)
