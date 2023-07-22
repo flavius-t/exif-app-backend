@@ -6,7 +6,7 @@ from contextlib import nullcontext as does_not_raise
 
 from test.testing_utils import create_text_files, create_image_files, create_mixed_files
 from utils.zip import zip_files, unzip_file
-from utils.zip import ZipError
+from utils.zip import ZipError, UnzipError
 
 
 TEST_FILES_FOLDER = "test_zip"
@@ -55,7 +55,7 @@ def test_zip_files_invalid_folder():
 
 
 @pytest.mark.parametrize(
-    "num_files, err", [(3, does_not_raise()), (1, does_not_raise()), (0, pytest.raises(ZipError))]
+    "num_files, err", [(3, does_not_raise()), (1, does_not_raise()), (0, pytest.raises(UnzipError))]
 )
 def test_unzip_files(num_files, err):
     os.mkdir(TEST_FILES_FOLDER)
@@ -81,7 +81,7 @@ def test_unzip_files(num_files, err):
 
 
 def test_unzip_files_bad_path():
-    with pytest.raises(ZipError) as e:
+    with pytest.raises(UnzipError) as e:
         unzip_file("bad_path", "bad_path")
         assert "Zip file not found" in str(e.value)
 
@@ -92,7 +92,7 @@ def test_unzip_non_zip_file():
         file_path = os.path.join(TEST_FILES_FOLDER, "test.txt")
         with open(file_path, "w") as f:
             f.write("testing")
-        with pytest.raises(ZipError) as e:
+        with pytest.raises(UnzipError) as e:
             unzip_file(file_path, "bad_path")
             assert "Zip file is corrupted" in str(e.value)
     except Exception as e:
