@@ -1,3 +1,7 @@
+"""
+Flask app for uploading zip files containing images, extracting metadata from the images, and returning a zip file
+"""
+
 import shutil
 import uuid
 import logging
@@ -63,6 +67,9 @@ ERR_SAVE_ZIP = "Internal error occured while processing images: failed to save z
 
 @app.route("/upload", methods=["POST"])
 def handle_upload():
+    """
+    Handles image processing requests.
+    """
     req_id = str(uuid.uuid4())
     log.info(f"Received new upload, assigning request_id {req_id}")
 
