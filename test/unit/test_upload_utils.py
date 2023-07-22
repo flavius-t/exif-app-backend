@@ -1,3 +1,7 @@
+"""
+Unit tests for upload_utils.py.
+"""
+
 import os
 import io
 import shutil
@@ -129,7 +133,7 @@ def test_create_temp_folder_raises():
         (create_mixed_files, 1, pytest.raises(InvalidFileError)),
     ],
 )
-def test_validate_zip_contents(create_files, num_files, err):
+def test_validate_zip_contents(create_files, num_files: int, err):
     """
     Tests that validate_zip_contents correctly validates a zipfile.
     """

@@ -1,9 +1,12 @@
+"""
+Unit tests for extract_meta.py
+"""
+
 import pytest
 import os
 import json
 import shutil
 from unittest.mock import patch
-from contextlib import nullcontext as does_not_raise
 
 from PIL import Image
 
@@ -32,7 +35,7 @@ TEST_IMG_2 = os.path.join(TEST_VALID_MULTIPLE, "DSC_2241.jpg")
         ("data.txt", {}),
     ],
 )
-def test_write_to_json(filename, metadata):
+def test_write_to_json(filename: str, metadata: dict):
     os.mkdir(TEST_FOLDER)
     base_name = os.path.splitext(filename)[0]
     file_path = os.path.join(TEST_FOLDER, filename)
@@ -66,7 +69,7 @@ def test_write_to_json_invalid_args(metadata):
         shutil.rmtree(TEST_FOLDER)
 
 
-def set_mock_exif(img):
+def set_mock_exif(img: Image):
     exif_data = {
         "Make": "Camera Manufacturer",
         "Model": "Camera Model",
@@ -126,10 +129,12 @@ def test_extract_metadata_creates_meta_file():
         shutil.rmtree(TEST_FOLDER)
 
 
-@pytest.mark.parametrize("arg", [
-    ("invalid_image_path"),
-    (1),
-    ]
+@pytest.mark.parametrize(
+    "arg",
+    [
+        ("invalid_image_path"),
+        (1),
+    ],
 )
 def test_extract_metadata_raises(arg):
     with pytest.raises(ExtractMetaError):
@@ -146,7 +151,7 @@ def test_extract_metadata_raises(arg):
         (["file1.png", "file2.jpg"]),
     ],
 )
-def test_extract_metadata_folder(folder_contents):
+def test_extract_metadata_folder(folder_contents: list):
     with patch("utils.extract_meta._extract_metadata") as mock_extract, patch(
         "os.listdir"
     ) as mock_listdir:
