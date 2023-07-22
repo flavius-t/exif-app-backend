@@ -9,6 +9,22 @@ from utils.mime_type import get_mime_type
 log = logging.getLogger(__name__)
 
 
+class UnzipError(Exception):
+    """
+    Exception raised for errors related to unzipping files.
+    """
+
+    def __init__(self, message, underlying_exception=None):
+        self.message = "Error occurred while unzipping images: " + message
+        self.underlying_exception = underlying_exception
+        super().__init__(message)
+
+    def __str__(self):
+        if self.underlying_exception:
+            return f"{self.message}\nUnderlying Exception: {str(self.underlying_exception)}"
+        return self.message
+
+
 class ZipError(Exception):
     """
     Exception raised for errors related to zipping files.
@@ -29,20 +45,20 @@ def unzip_file(zip_path, extract_dir):
     try:
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             if zip_ref.namelist() == []:
-                raise ZipError("Zip file is empty")
+                raise UnzipError("Zip file is empty")
             zip_ref.extractall(extract_dir)
     except zipfile.BadZipFile as e:
         log.error(f"BadZipFile: zipfile {zip_path} is corrupted -> {e}")
-        raise ZipError("Zip file is corrupted", e)
+        raise UnzipError("Zip file is corrupted", e)
     except FileNotFoundError as e:
         log.error(f"FileNotFoundError: could not find file {zip_path} -> {e}")
-        raise ZipError("Zip file not found", e)
+        raise UnzipError("Zip file not found", e)
     except zipfile.LargeZipFile as e:
         log.error(f"LargeZipFile: zip file exceeds limits -> {e}")
-        raise ZipError("Zip file exceeds size limit", e)
+        raise UnzipError("Zip file exceeds size limit", e)
     except OSError as e:
         log.error(f"OSError: could not extract zipfile {zip_path} -> {e}")
-        raise ZipError("", e)
+        raise UnzipError("", e)
 
 
 def zip_files(folder_path: str):

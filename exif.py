@@ -9,7 +9,7 @@ from flask_cors import CORS
 
 from utils.constants import ZIP_NAME
 from utils.extract_meta import extract_metadata, ExtractMetaError
-from utils.zip import unzip_file, zip_files, ZipError
+from utils.zip import unzip_file, zip_files, ZipError, UnzipError
 from utils.upload_utils import (
     validate_zip_contents,
     check_zip_size,
@@ -41,6 +41,10 @@ ERR_TEMP_FOLDER = (
     500,
 )
 ERR_NON_IMAGE_FILE = "Non-image file detected in upload", 400
+ERR_UNZIP_FILE = (
+    "Internal error occured while processing images: failed to unzip files",
+    500,
+)
 ERR_ZIP_TO_MEMORY = (
     "Internal error occured while processing images: failed to zip files into memory",
     500,
@@ -130,8 +134,11 @@ def handle_upload():
     except SaveZipFileError as e:
         log.error(f"request {req_id}: failed to save zipfile -> {e}")
         return ERR_SAVE_ZIP
+    except UnzipError as e:
+        log.error(f"request {req_id}: error occured while unzipping -> {e}")
+        return ERR_UNZIP_FILE
     except ZipError as e:
-        log.error(f"request {req_id}: failed to zip files into memory -> {e}")
+        log.error(f"request {req_id}: error occured while zipping/unzipping -> {e}")
         response = ERR_ZIP_TO_MEMORY
     except ExtractMetaError as e:
         log.error(f"request {req_id}: failed to extract metadata from images -> {e}")
