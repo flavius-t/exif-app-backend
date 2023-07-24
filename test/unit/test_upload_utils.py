@@ -25,7 +25,7 @@ from utils.upload_utils import (
     create_temp_folder,
     InvalidFileError,
     LargeZipError,
-    FolderAlreadyExistsError,
+    CreateTempFolderError,
     SaveZipFileError,
 )
 
@@ -117,7 +117,7 @@ def test_create_temp_folder_raises():
     """
     req_id = "test_req_id"
     base_folder, _ = create_temp_folder(req_id)
-    with pytest.raises(FolderAlreadyExistsError):
+    with pytest.raises(CreateTempFolderError):
         create_temp_folder(req_id)
     shutil.rmtree(base_folder)
 

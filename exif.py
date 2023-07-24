@@ -21,7 +21,7 @@ from utils.upload_utils import (
     create_temp_folder,
     InvalidFileError,
     LargeZipError,
-    FolderAlreadyExistsError,
+    CreateTempFolderError,
     SaveZipFileError,
     ZIP_SIZE_LIMIT_MB,
 )
@@ -89,8 +89,8 @@ def handle_upload():
     try:
         log.info(f"request {req_id}: creating temp folder")
         base_folder, imgs_folder = create_temp_folder(req_id)
-    except FolderAlreadyExistsError as e:
-        log.error(f"request {req_id}: could not create temp folder as it already exists -> {e}")
+    except CreateTempFolderError as e:
+        log.error(f"request {req_id}: could not create temp folder -> {e}")
         return ERR_TEMP_FOLDER
 
     try:

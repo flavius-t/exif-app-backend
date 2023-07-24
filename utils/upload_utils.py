@@ -10,7 +10,7 @@ Functions:
 Exceptions:
     InvalidFileError(Exception)
     LargeZipError(Exception)
-    FolderAlreadyExistsError(Exception)
+    CreateTempFolderError(Exception)
     SaveZipFileError(Exception)
 """
 
@@ -43,9 +43,10 @@ class LargeZipError(Exception):
     pass
 
 
-class FolderAlreadyExistsError(Exception):
+class CreateTempFolderError(Exception):
     """
-    Exception raised for when a request's temporary already exists previous to request.
+    Exception raised for when temporary folder cannot be created, i.e.
+    permission denied, disk full, folder already exists, etc.
     """
 
     pass
@@ -132,13 +133,13 @@ def create_temp_folder(req_id: str) -> tuple[str, str]:
         tuple[str, str]: path to base folder, path to images folder
 
     Raises:
-        FolderAlreadyExistsError: if folder with same name already exists
+        CreateTempFolderError: if temp folder cannot be created
     """
     base_folder = f"{UPLOAD_FOLDER}/{req_id}"
     imgs_folder = f"{base_folder}/images"
     try:
         os.makedirs(imgs_folder)
-    except OSError:
-        raise FolderAlreadyExistsError(f"Folder {imgs_folder} already exists")
+    except OSError as e:
+        raise CreateTempFolderError(f"Folder {imgs_folder} could not be created: {e}")
 
     return base_folder, imgs_folder
