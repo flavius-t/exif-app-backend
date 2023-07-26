@@ -6,10 +6,15 @@ import shutil
 import uuid
 import logging
 import zipfile
+import os
 from io import BytesIO
 
+from dotenv import load_dotenv
 from flask import Flask, request, send_file, make_response
 from flask_cors import CORS
+from flask_restful import Api, Resource, reqparse
+from flask_jwt_extended import create_access_token, JWTManager
+from pymongo import MongoClient
 
 from utils.constants import ZIP_NAME
 from utils.extract_meta import extract_metadata, ExtractMetaError
@@ -25,12 +30,31 @@ from utils.upload_utils import (
     SaveZipFileError,
     ZIP_SIZE_LIMIT_MB,
 )
+from utils.mongo_utils import create_mongo_client, create_db, create_collection
 
 
+load_dotenv()
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+MONGO_URL = os.getenv("MONGO_URL")
+DB_NAME = os.getenv("DB_NAME")
+USERS_COLLECTION = os.getenv("USERS_COLLECTION")
+
+
+# Flask app and api setup
 app = Flask(__name__)
+app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 CORS(app)
+api = Api(app)
+jwt = JWTManager(app)
 
 
+# MongoDB setup
+client = create_mongo_client(MONGO_URL)
+db = create_db(client, DB_NAME)
+users = create_collection(db, USERS_COLLECTION)
+
+
+# logging setup
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
