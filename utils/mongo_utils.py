@@ -77,3 +77,17 @@ def get_user(users, username: str):
     """
     user = users.find_one({USERNAME_FIELD: username})
     return user
+
+
+def delete_user(users, username: str):
+    """
+    Deletes a user from a MongoDB collection
+
+    Args:
+        users: A MongoDB collection
+        username (str): The username of the user to delete
+
+    Returns:
+        None
+    """
+    users.delete_one({USERNAME_FIELD: username})
