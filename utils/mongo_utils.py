@@ -1,6 +1,11 @@
+import logging
+
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
+
+
+log = logging.getLogger(__name__)
 
 
 USERNAME_FIELD = "username"
@@ -32,6 +37,7 @@ def create_db(mongo_client: MongoClient, db_name: str) -> Database:
     Returns:
         Database: A Mongo database
     """
+    log.debug(f"Creating database '{db_name}'")
     db = mongo_client[db_name]
     return db
 
@@ -47,6 +53,7 @@ def create_collection(db: Database, collection_name: str) -> Collection:
     Returns:
         Collection: A MongoDB collection
     """
+    log.debug(f"Creating collection '{collection_name}'")
     collection = db[collection_name]
     return collection
 
@@ -60,6 +67,7 @@ def add_user(users: Collection, username: str, password: str) -> None:
         username (str): The username of the user to add
         password (str): The password of the user to add
     """
+    log.debug(f"Adding user '{username}' to collection '{users.name}'")
     users.insert_one({USERNAME_FIELD: username, PASSWORD_FIELD: password})
 
 
@@ -74,6 +82,7 @@ def get_user(users: Collection, username: str) -> dict:
     Returns:
         dict: A MongoDB document
     """
+    log.debug(f"Getting user '{username}' from collection '{users.name}'")
     user = users.find_one({USERNAME_FIELD: username})
     return user
 
@@ -87,4 +96,5 @@ def delete_user(users: dict, username: str) -> None:
         username (str): The username of the user to delete
 
     """
+    log.debug(f"Deleting user '{username}' from collection '{users.name}'")
     users.delete_one({USERNAME_FIELD: username})
