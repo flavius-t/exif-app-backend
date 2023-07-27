@@ -14,12 +14,12 @@ from utils.mongo_utils import (
     get_user,
     delete_user,
 )
+from utils.constants import TEST_DB, TEST_COLLECTION
+
 
 dotenv.load_dotenv()
 MONGO_URL = os.getenv("MONGO_URL")
 
-TEST_DB = "test_db"
-TEST_COLLECTION = "test_collection"
 
 TEST_USER_1 = "test_user_1"
 TEST_USER_2 = "test_user_2"

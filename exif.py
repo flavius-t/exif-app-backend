@@ -49,8 +49,8 @@ jwt = JWTManager(app)
 
 
 # MongoDB setup
-client = create_mongo_client(MONGO_URL)
-db = create_db(client, DB_NAME)
+mongo_client = create_mongo_client(MONGO_URL)
+db = create_db(mongo_client, DB_NAME)
 users = create_collection(db, USERS_COLLECTION)
 
 
