@@ -1,3 +1,19 @@
+"""
+MongoDB utility functions
+
+Functions:
+    create_mongo_client: Creates a MongoClient instance
+    create_db: Creates a local MongoDB database object
+    create_collection: Creates a local MongoDB collection
+    add_user: Adds a user to a MongoDB collection
+    get_user: Gets a user from a MongoDB collection
+    delete_user: Deletes a user from a MongoDB collection
+    close_connection: Closes a MongoClient connection
+
+Exceptions:
+    MongoServerConnectionError: If the MongoClient instance fails to connect to the MongoDB server
+"""
+
 import logging
 
 from pymongo import MongoClient

@@ -1,5 +1,9 @@
+"""
+Unit tests for mongo_utils.py
+"""
+
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from contextlib import nullcontext as does_not_raise
 
 import pytest
