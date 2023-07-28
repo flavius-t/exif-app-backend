@@ -177,8 +177,9 @@ def handle_upload():
 
 
 @app.teardown_appcontext
-def clean_up_resources(exception: Exception):
-    close_connection(mongo_client)
+def clean_up_resources(exception):
+    if isinstance(exception, KeyboardInterrupt): 
+        close_connection(mongo_client)
 
 
 if __name__ == "__main__":
