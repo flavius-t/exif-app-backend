@@ -3,6 +3,7 @@ import logging
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
+from pymongo.errors import ServerSelectionTimeoutError
 
 
 log = logging.getLogger(__name__)
@@ -10,9 +11,14 @@ log = logging.getLogger(__name__)
 
 USERNAME_FIELD = "username"
 PASSWORD_FIELD = "password"
+TIMEOUT_MS = 2000
 
 
-def create_mongo_client(mongo_url: str):
+class MongoServerConnectionError(Exception):
+    pass
+
+
+def create_mongo_client(mongo_url: str) -> MongoClient:
     """
     Creates a MongoClient instance
 
@@ -21,9 +27,36 @@ def create_mongo_client(mongo_url: str):
 
     Returns:
         MongoClient: connection to MongoDB server instance
+
+    Raises:
+        MongoServerConnectionError: If the MongoClient instance fails to connect to the MongoDB server
     """
-    mongo_client = MongoClient(mongo_url)
+    log.debug(f"Creating MongoDB client connection to '{mongo_url}'")
+    mongo_client = MongoClient(
+        mongo_url, connectTimeoutMS=TIMEOUT_MS, serverSelectionTimeoutMS=TIMEOUT_MS
+    )
+    if not _is_connected_to_server(mongo_client):
+        raise MongoServerConnectionError(f"Failed to connect to MongoDB server at '{mongo_url}'")
     return mongo_client
+
+
+def _is_connected_to_server(mongo_client: MongoClient) -> bool:
+    """
+    Checks if the MongoClient instance is connected to the MongoDB server
+
+    Args:
+        mongo_client (MongoClient): A MongoClient instance
+
+    Returns:
+        bool: True if connected, False if not connected
+    """
+    log.debug(f"Checking MongoDB server connection")
+    try:
+        mongo_client.admin.command("ismaster")
+        return True
+    except ServerSelectionTimeoutError as e:
+        log.error(f"Failed to connect to MongoDB server: {e}")
+        return False
 
 
 def create_db(mongo_client: MongoClient, db_name: str) -> Database:
@@ -98,3 +131,14 @@ def delete_user(users: dict, username: str) -> None:
     """
     log.debug(f"Deleting user '{username}' from collection '{users.name}'")
     users.delete_one({USERNAME_FIELD: username})
+
+
+def close_connection(mongo_client: MongoClient) -> None:
+    """
+    Closes a MongoClient connection
+
+    Args:
+        mongo_client (MongoClient): A MongoClient instance
+    """
+    log.debug(f"Closing MongoDB client connection")
+    mongo_client.close()
