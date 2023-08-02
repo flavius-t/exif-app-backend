@@ -15,6 +15,9 @@ Exceptions:
 """
 
 import logging
+import os
+
+from dotenv import load_dotenv
 
 from pymongo import MongoClient
 from pymongo.collection import Collection
@@ -24,6 +27,10 @@ from pymongo.errors import ServerSelectionTimeoutError
 
 log = logging.getLogger(__name__)
 
+load_dotenv()
+
+MONGO_USER = os.getenv("MONGO_USER")
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 
 USERNAME_FIELD = "username"
 PASSWORD_FIELD = "password"
@@ -49,7 +56,11 @@ def create_mongo_client(mongo_url: str) -> MongoClient:
     """
     log.debug(f"Creating MongoDB client connection to '{mongo_url}'")
     mongo_client = MongoClient(
-        mongo_url, connectTimeoutMS=TIMEOUT_MS, serverSelectionTimeoutMS=TIMEOUT_MS
+        mongo_url,
+        connectTimeoutMS=TIMEOUT_MS,
+        serverSelectionTimeoutMS=TIMEOUT_MS,
+        username=MONGO_USER,
+        password=MONGO_PASSWORD,
     )
     if not _is_connected_to_server(mongo_client):
         raise MongoServerConnectionError(f"Failed to connect to MongoDB server at '{mongo_url}'")
@@ -69,10 +80,11 @@ def _is_connected_to_server(mongo_client: MongoClient) -> bool:
     log.debug(f"Checking MongoDB server connection")
     try:
         mongo_client.admin.command("ismaster")
-        return True
     except ServerSelectionTimeoutError as e:
         log.error(f"Failed to connect to MongoDB server: {e}")
         return False
+
+    return True
 
 
 def create_db(mongo_client: MongoClient, db_name: str) -> Database:
