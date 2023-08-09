@@ -34,6 +34,7 @@ jobs:
           mongodb-port: 27017
           mongodb-username: ${{ secrets.MONGO_USER }}
           mongodb-password: ${{ secrets.MONGO_PASSWORD }}
+          mongodb-db: test
       - name: Install Requirements
         run: |
           python -m pip install --upgrade pip
