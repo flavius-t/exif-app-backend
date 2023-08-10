@@ -24,6 +24,7 @@ from utils.upload_utils import (
     validate_zip_contents,
     create_temp_folder,
     _sanitize_filename,
+    sanitize_zipfile,
     InvalidFileError,
     LargeZipError,
     CreateTempFolderError,
@@ -164,7 +165,7 @@ def test_validate_bad_zipfile():
     """
     os.mkdir(TEST_FOLDER)
     try:
-        with patch('zipfile.ZipFile', side_effect=zipfile.BadZipFile()):
+        with patch("zipfile.ZipFile", side_effect=zipfile.BadZipFile()):
             corrupted_zip_file = io.BytesIO(b"Corrupted Zip Data")
 
             with pytest.raises(zipfile.BadZipFile):
@@ -190,3 +191,31 @@ def test_sanitize_filename(filename, expected):
     Tests that _sanitize_filename correctly sanitizes filenames.
     """
     assert _sanitize_filename(filename) == expected
+
+
+@pytest.mark.parametrize(
+    "filenames, expected",
+    [
+        (["test_file.txt"], ["test_file.txt"]),
+        (["test_file_1.txt", "test_file_2.txt"], ["test_file_1.txt", "test_file_2.txt"]),
+        (["illegal__file\.jpg"], ["illegal_file.jpg"]),
+        (["sudo rm -rf /etc/mongodb.conf"], ["sudorm-rfetcmongodb.conf"]),
+    ],
+)
+def test_sanitize_zipfile(filenames, expected):
+    """
+    Tests that sanitize_filenames correctly sanitizes filenames.
+    """
+    # write test zip file
+    zip_buff = io.BytesIO()
+    with zipfile.ZipFile(zip_buff, "w") as zip:
+        for i, file in enumerate(filenames):
+            zip.writestr(file, f"hello_world_{i}")
+    zip_buff.seek(0)
+
+    sanitized_zip = sanitize_zipfile(zip_buff)
+
+    with zipfile.ZipFile(sanitized_zip, "r") as zip:
+        assert zip.namelist() == expected
+        for i, file in enumerate(expected):
+            assert zip.read(file) == f"hello_world_{i}".encode("utf-8")
