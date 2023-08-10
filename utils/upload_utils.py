@@ -17,6 +17,7 @@ Exceptions:
 import os
 import zipfile
 import logging
+import re
 from io import BytesIO
 
 from werkzeug.datastructures import FileStorage
@@ -80,6 +81,33 @@ def validate_zip_contents(zip_file: BytesIO) -> None:
     except zipfile.BadZipFile as e:
         log.error(f"BadZipFile: zipfile is corrupted -> {e}")
         raise e
+
+
+def _sanitize_filename(filename: str) -> str:
+    """
+    Sanitizes a filename.
+
+    Args:
+        filename (str): filename to sanitize
+
+    Returns:
+        str: sanitized filename
+    """
+    allowed_chars = r'[^\w.!@#$%^()\[\]-]'
+
+    # Remove all characters not in allowed_chars
+    sanitized_filename = re.sub(allowed_chars, '', filename)
+
+    # Replace consecutive periods with a single period
+    sanitized_filename = re.sub(r'\.{2,}', '.', sanitized_filename)
+
+    # Replace consecutive underscores with a single underscore
+    sanitized_filename = re.sub(r'[_]+', '_', sanitized_filename)
+    
+    # Remove leading and trailing underscores, periods
+    sanitized_filename = sanitized_filename.strip('_.')
+    
+    return sanitized_filename
 
 
 def check_zip_size(zip_file: BytesIO) -> None:
