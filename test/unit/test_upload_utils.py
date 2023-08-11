@@ -23,6 +23,7 @@ from utils.upload_utils import (
     check_zip_size,
     validate_zip_contents,
     create_temp_folder,
+    _sanitize_filename,
     InvalidFileError,
     LargeZipError,
     CreateTempFolderError,
@@ -170,3 +171,22 @@ def test_validate_bad_zipfile():
                 validate_zip_contents(corrupted_zip_file)
     finally:
         shutil.rmtree(TEST_FOLDER)
+
+
+@pytest.mark.parametrize(
+    "filename, expected",
+    [
+        ("test_file.txt", "test_file.txt"),
+        ("ls ../.env", "ls.env"),
+        ("rm -rf /etc/mongodb.conf", "rm-rfetcmongodb.conf"),
+        ("hello_world\n.txt", "hello_world.txt"),
+        ("hello_world...txt", "hello_world.txt"),
+        ("hello_____world.txt", "hello_world.txt"),
+        (".hello_world.txt.", "hello_world.txt"),
+    ],
+)
+def test_sanitize_filename(filename, expected):
+    """
+    Tests that _sanitize_filename correctly sanitizes filenames.
+    """
+    assert _sanitize_filename(filename) == expected

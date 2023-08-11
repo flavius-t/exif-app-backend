@@ -6,6 +6,7 @@ import pytest
 import os
 import shutil
 import zipfile
+from io import BytesIO
 from contextlib import nullcontext as does_not_raise
 
 from test.testing_utils import create_text_files, create_image_files, create_mixed_files
@@ -128,6 +129,49 @@ def test_unzip_non_zip_file():
         with pytest.raises(UnzipError) as e:
             unzip_file(file_path, "bad_path")
             assert "Zip file is corrupted" in str(e.value)
+    except Exception as e:
+        raise e
+    finally:
+        shutil.rmtree(TEST_FILES_FOLDER)
+
+
+@pytest.mark.parametrize(
+    "file_names, expected",
+    [
+        (["illegal -- file.txt"], ["illegal--file.txt"]),
+        (["..illegal.txt"], ["illegal.txt"]),
+    ],
+)
+def test_unzip_sanitization(file_names: list[str], expected: list[str]):
+    """
+    Test that unzip_files correctly sanitizes the file names.
+    """
+    os.mkdir(TEST_FILES_FOLDER)
+    try:
+        # write new files to disk
+        for file in file_names:
+            file_path = os.path.join(TEST_FILES_FOLDER, file)
+            with open(file_path, "w") as f:
+                f.write("testing")
+
+        # create buffer zipfile with new files
+        buffer = BytesIO()
+        with zipfile.ZipFile(buffer, "w") as zip_ref:
+            for file in file_names:
+                file_path = os.path.join(TEST_FILES_FOLDER, file)
+                zip_ref.write(file_path, file)
+
+        # write buffer zipfile to disk
+        zip_path = os.path.join(TEST_FILES_FOLDER, "test.zip")
+        with open(zip_path, "wb") as f:
+            f.write(buffer.getvalue())
+        assert os.path.exists(zip_path)
+
+        # unzip files and check that the file names are sanitized
+        extract_dir = os.path.join(TEST_FILES_FOLDER, ZIP_EXTRACTION_FOLDER)
+        unzip_file(zip_path, extract_dir)
+        assert os.path.exists(extract_dir)
+        assert os.listdir(extract_dir) == expected
     except Exception as e:
         raise e
     finally:

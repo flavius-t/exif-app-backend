@@ -16,6 +16,7 @@ import io
 import logging
 
 from utils.mime_type import get_mime_type
+from utils.upload_utils import _sanitize_filename
 
 
 log = logging.getLogger(__name__)
@@ -68,7 +69,10 @@ def unzip_file(zip_path: str, extract_dir: str) -> None:
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             if zip_ref.namelist() == []:
                 raise UnzipError("Zip file is empty")
-            zip_ref.extractall(extract_dir)
+            for file_info in zip_ref.infolist():
+                sanitized_filename = _sanitize_filename(file_info.filename)
+                file_info.filename = sanitized_filename
+                zip_ref.extract(file_info, path=extract_dir)
     except zipfile.BadZipFile as e:
         log.error(f"BadZipFile: zipfile {zip_path} is corrupted -> {e}")
         raise UnzipError("Zip file is corrupted", e)
