@@ -93,20 +93,22 @@ def _sanitize_filename(filename: str) -> str:
     Returns:
         str: sanitized filename
     """
-    allowed_chars = r'[^\w.!@#$%^()\[\]-]'
+    allowed_chars = r"[^\w.!@#$%^()\[\]-]"
 
     # Remove all characters not in allowed_chars
-    sanitized_filename = re.sub(allowed_chars, '', filename)
+    sanitized_filename = re.sub(allowed_chars, "", filename)
 
     # Replace consecutive periods with a single period
-    sanitized_filename = re.sub(r'\.{2,}', '.', sanitized_filename)
+    sanitized_filename = re.sub(r"\.{2,}", ".", sanitized_filename)
 
     # Replace consecutive underscores with a single underscore
-    sanitized_filename = re.sub(r'[_]+', '_', sanitized_filename)
-    
+    sanitized_filename = re.sub(r"[_]+", "_", sanitized_filename)
+
     # Remove leading and trailing underscores, periods
-    sanitized_filename = sanitized_filename.strip('_.')
-    
+    sanitized_filename = sanitized_filename.strip("_.")
+
+    log.debug(f"Sanitized filename '{filename}' to '{sanitized_filename}'")
+
     return sanitized_filename
 
 
