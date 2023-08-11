@@ -93,41 +93,21 @@ def _sanitize_filename(filename: str) -> str:
     Returns:
         str: sanitized filename
     """
-    allowed_chars = r"[^\w.!@#$%^()\[\]-]"
+    allowed_chars = r'[^\w.!@#$%^()\[\]-]'
 
     # Remove all characters not in allowed_chars
-    sanitized_filename = re.sub(allowed_chars, "", filename)
+    sanitized_filename = re.sub(allowed_chars, '', filename)
 
     # Replace consecutive periods with a single period
-    sanitized_filename = re.sub(r"\.{2,}", ".", sanitized_filename)
+    sanitized_filename = re.sub(r'\.{2,}', '.', sanitized_filename)
 
     # Replace consecutive underscores with a single underscore
-    sanitized_filename = re.sub(r"[_]+", "_", sanitized_filename)
-
+    sanitized_filename = re.sub(r'[_]+', '_', sanitized_filename)
+    
     # Remove leading and trailing underscores, periods
-    sanitized_filename = sanitized_filename.strip("_.")
-
+    sanitized_filename = sanitized_filename.strip('_.')
+    
     return sanitized_filename
-
-
-def sanitize_zipfile(zip_file: BytesIO) -> None:
-    """
-    Copies files to new zip file with sanitized filenames
-
-    Args:
-        zip_file (BytesIO): zipfile to sanitize
-
-    Returns:
-        BytesIO: sanitized zipfile
-    """
-    sanitized_zip_file = BytesIO()
-    with zipfile.ZipFile(zip_file, "r") as zip_ref:
-        with zipfile.ZipFile(sanitized_zip_file, "w") as sanitized_zip_ref:
-            for file in zip_ref.namelist():
-                sanitized_filename = _sanitize_filename(file)
-                sanitized_zip_ref.writestr(sanitized_filename, zip_ref.read(file))
-
-    return sanitized_zip_file
 
 
 def check_zip_size(zip_file: BytesIO) -> None:
@@ -144,27 +124,27 @@ def check_zip_size(zip_file: BytesIO) -> None:
         raise LargeZipError(f"Zip file exceeds size limit of {ZIP_SIZE_LIMIT_MB} bytes")
 
 
-def save_file(file: BytesIO, folder: str) -> str:
+def save_file(file: FileStorage, folder: str) -> str:
     """
     Saves an in-memory file to a folder.
 
     Args:
-        file (BytesIO): file to save
+        file (FileStorage): file to save
+        filename (str): name of file
         folder (str): folder to save file to
 
     Returns:
         str: path to saved file
     """
-    file_path = os.path.join(folder, "images.zip")
+    file_path = os.path.join(folder, file.filename)
 
     try:
-        with open(file_path, "wb") as f:
-            f.write(file.getbuffer())
+        file.save(file_path)
     except FileNotFoundError as e:
         log.error(
-            f"FileNotFoundError: failed to save zipfile - target directory '{folder}' likely does not exist"
+            f"FileNotFoundError: failed to save file '{file.filename}' - target directory '{folder}' likely does not exist"
         )
-        raise SaveZipFileError(f"Failed to save zipfile -> {e}") from e
+        raise SaveZipFileError(f"Failed to save file '{file.filename}' -> {e}") from e
 
     file.close()
     return file_path

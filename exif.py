@@ -21,7 +21,6 @@ from utils.upload_utils import (
     check_zip_size,
     save_file,
     create_temp_folder,
-    sanitize_zipfile,
     InvalidFileError,
     LargeZipError,
     CreateTempFolderError,
@@ -120,14 +119,11 @@ def handle_upload():
         log.info(f"request {req_id}: validating zipfile contents")
         validate_zip_contents(zip_buffer)
 
-        log.info(f"request {req_id}: sanitizing zipfile")
-        sanitized_zip = sanitize_zipfile(zip_buffer)
-
         zip_buffer.close()
         file.seek(0)
 
         log.info(f"request {req_id}: saving zipfile to temp folder")
-        zip_path = save_file(sanitized_zip, base_folder)
+        zip_path = save_file(file, base_folder)
 
         log.info(f"request {req_id}: unzipping images")
         unzip_file(zip_path, imgs_folder)
