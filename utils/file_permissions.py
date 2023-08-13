@@ -1,3 +1,11 @@
+"""
+Helper module for changing file permissions.
+
+Functions:
+    restrict_file_permissions(folder_path: str) -> None
+"""
+
+
 import os
 import stat
 
@@ -5,7 +13,7 @@ import stat
 PERMISSIONS = 0o644
 
 
-def restrict_file_permissions(folder_path: str):
+def restrict_file_permissions(folder_path: str) -> None:
     """
     Set file permissions to read-write for owner, read for group and others.
     Intended for use on folders containing files uploaded by application users.
