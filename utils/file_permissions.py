@@ -18,5 +18,5 @@ def restrict_file_permissions(folder_path: str):
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File {file_path} does not exist")
         current_permissions = os.stat(file_path).st_mode
-        new_permissions = current_permissions | stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
+        new_permissions = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
         os.chmod(file_path, new_permissions)

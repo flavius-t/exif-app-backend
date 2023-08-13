@@ -7,6 +7,7 @@ from test.testing_utils import create_mixed_files
 
 
 TEST_FOLDER = os.path.join("test", "unit", "test_file_perm")
+EXPECTED_PERM = "644"
 
 
 def test_restrict_file_permissions():
@@ -19,7 +20,7 @@ def test_restrict_file_permissions():
         restrict_file_permissions(TEST_FOLDER)
         for file in os.listdir(TEST_FOLDER):
             file_path = os.path.join(TEST_FOLDER, file)
-            assert oct(os.stat(file_path).st_mode)[-3:] == "644"
+            assert oct(os.stat(file_path).st_mode)[-3:] == EXPECTED_PERM
     finally:
         shutil.rmtree(TEST_FOLDER)
         pass
