@@ -28,6 +28,7 @@ from utils.upload_utils import (
     ZIP_SIZE_LIMIT_MB,
 )
 from utils.mongo_utils import create_mongo_client, create_db, create_collection, close_connection
+from utils.file_permissions import restrict_file_permissions
 
 
 load_dotenv()
@@ -127,6 +128,9 @@ def handle_upload():
 
         log.info(f"request {req_id}: unzipping images")
         unzip_file(zip_path, imgs_folder)
+
+        log.info(f"request {req_id}: restricting execute permissions")
+        restrict_file_permissions(imgs_folder)
 
         log.info(f"request {req_id}: extracting image metadata")
         extract_metadata(imgs_folder)
