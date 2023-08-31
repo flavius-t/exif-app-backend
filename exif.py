@@ -32,7 +32,7 @@ from utils.mongo_utils import create_mongo_client, create_db, create_collection,
 
 load_dotenv()
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-MONGO_URL = os.getenv("MONGO_URL")
+MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME")
 USERS_COLLECTION = os.getenv("USERS_COLLECTION")
 
@@ -43,7 +43,7 @@ CORS(app)
 
 
 # MongoDB setup
-mongo_client = create_mongo_client(MONGO_URL)
+mongo_client = create_mongo_client(MONGO_URI)
 db = create_db(mongo_client, DB_NAME)
 users = create_collection(db, USERS_COLLECTION)
 

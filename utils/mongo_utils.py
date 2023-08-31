@@ -34,7 +34,7 @@ MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 
 USERNAME_FIELD = "username"
 PASSWORD_FIELD = "password"
-TIMEOUT_MS = 2000
+TIMEOUT_MS = 5000
 
 
 class MongoServerConnectionError(Exception):

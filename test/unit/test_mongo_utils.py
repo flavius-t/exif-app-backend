@@ -27,7 +27,7 @@ from utils.constants import TEST_DB, TEST_COLLECTION
 
 
 dotenv.load_dotenv()
-MONGO_URL = os.getenv("MONGO_URL")
+MONGO_URL = os.getenv("MONGO_URI")
 
 
 TEST_USER_1 = "test_user_1"
