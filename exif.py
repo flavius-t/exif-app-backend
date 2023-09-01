@@ -31,6 +31,7 @@ from utils.mongo_utils import create_mongo_client, create_db, create_collection,
 
 
 load_dotenv()
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME")
 USERS_COLLECTION = os.getenv("USERS_COLLECTION")
