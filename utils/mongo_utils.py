@@ -29,8 +29,8 @@ log = logging.getLogger(__name__)
 
 load_dotenv()
 
-MONGO_USER = os.getenv("MONGO_USER")
-MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
+MONGO_USER = os.getenv("MONGO_INITDB_ROOT_USERNAME")
+MONGO_PASSWORD = os.getenv("MONGO_INITDB_ROOT_PASSWORD")
 
 USERNAME_FIELD = "username"
 PASSWORD_FIELD = "password"
