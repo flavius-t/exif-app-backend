@@ -19,6 +19,9 @@ MONGO_PASSWORD=<mongo-server-root-password>
 
 Note, authentication env vars for MongoDB for connecting to the MongoDB server must match those from `.env` in `exif-app-docker` repo.
 
+### Dockerization
+It is not recommended to build and run the container independently, as it depends on a MongoDB container as defined in `docker-compose.yaml` in the `exif-app-docker` repository.
+
 ### Dependencies
 From repo root directory, run:
 ```
@@ -30,3 +33,5 @@ python3 -m pip install -r requirements.txt
 ```
 python3 exif.py
 ```
+
+Note, the commands shown above are intended for use inside the Docker container running this app. The app does not work outside the docker environment.
