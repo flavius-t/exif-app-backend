@@ -33,7 +33,7 @@ from utils.file_permissions import restrict_file_permissions
 
 load_dotenv()
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-MONGO_URL = os.getenv("MONGO_URL")
+MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME")
 USERS_COLLECTION = os.getenv("USERS_COLLECTION")
 
@@ -44,7 +44,7 @@ CORS(app)
 
 
 # MongoDB setup
-mongo_client = create_mongo_client(MONGO_URL)
+mongo_client = create_mongo_client(MONGO_URI)
 db = create_db(mongo_client, DB_NAME)
 users = create_collection(db, USERS_COLLECTION)
 
@@ -187,4 +187,4 @@ def clean_up_resources(exception):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
