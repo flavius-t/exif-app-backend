@@ -13,9 +13,11 @@ Ensure `.env` is present in repo root directory with the following fields:
 ```
 DB_NAME=<database-name>
 USERS_COLLECTION=<collection-name>
+MONGO_USER=<mongo-server-root-username>
+MONGO_PASSWORD=<mongo-server-root-password>
 ```
 
-Note, authentication env vars used in `mongo_utils.py` for connecting to the MongoDB server are provided by `.env` in `exif-app-docker` repo.
+Note, authentication env vars for MongoDB for connecting to the MongoDB server must match those from `.env` in `exif-app-docker` repo.
 
 ### Dependencies
 From repo root directory, run:
