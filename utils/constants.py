@@ -17,3 +17,7 @@ ZIP_SIZE_LIMIT_MB = 100
 # MongoDB test database and collection names
 TEST_DB = "test_db"
 TEST_COLLECTION = "test_collection"
+
+# MongoDB collection constants
+USERNAME_FIELD = "username"
+PASSWORD_FIELD = "password"

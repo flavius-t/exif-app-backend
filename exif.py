@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, send_file, make_response
 from flask_cors import CORS
 
-from utils.constants import ZIP_NAME
+from utils.constants import ZIP_NAME, USERNAME_FIELD, PASSWORD_FIELD
 from utils.extract_meta import extract_metadata, ExtractMetaError
 from utils.zip import unzip_file, zip_files, ZipError, UnzipError
 from utils.upload_utils import (
@@ -27,7 +27,13 @@ from utils.upload_utils import (
     SaveZipFileError,
     ZIP_SIZE_LIMIT_MB,
 )
-from utils.mongo_utils import create_mongo_client, create_db, create_collection, close_connection
+from utils.mongo_utils import (
+    create_mongo_client,
+    create_db,
+    create_collection,
+    close_connection,
+    add_user,
+)
 from utils.file_permissions import restrict_file_permissions
 
 
@@ -56,6 +62,11 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+# generic endpoint responses
+ERR_NO_JSON = "Request contains no json", 400
+
+
+# /upload endpoint responses
 ERR_NO_FILES = "No files contained in request", 400
 ERR_FILE_NAME = "Expected attached file to be named 'file'", 400
 ERR_NO_ZIP = "Request is missing zipfile", 400
@@ -82,6 +93,44 @@ ERR_ZIP_SIZE_LIMIT = (
 )
 ERR_ZIP_CORRUPT = "Zip file is corrupted", 400
 ERR_SAVE_ZIP = "Internal error occured while processing images: failed to save zipfile", 500
+
+
+# /register endpoint responses
+ERR_FIELDS_MISSING = "Request is missing username or password", 400
+ERR_USER_EXISTS = "User already exists", 409
+REGISTER_SUCCESS = "User registration successful", 200
+
+
+@app.route("/register", methods=["POST"])
+def handle_register():
+    """
+    Handles user registration requests.
+    """
+    req_id = str(uuid.uuid4())
+    log.info(f"Received new registration request, assigning request_id {req_id}")
+
+    if not request.json:
+        log.error(f"request {req_id}: request contains no json")
+        return ERR_NO_JSON
+
+    username = request.json.get(USERNAME_FIELD)
+    password = request.json.get(PASSWORD_FIELD)
+
+    if not (username and password):
+        log.error(f"request {req_id}: request missing username or password")
+        return ERR_FIELDS_MISSING
+
+    user = users.find_one({USERNAME_FIELD: username})
+
+    if user is not None:
+        log.error(f"request {req_id}: user {username} already exists")
+        return ERR_USER_EXISTS
+
+    # TODO: hash password
+    users.insert_one({USERNAME_FIELD: username, PASSWORD_FIELD: password})
+
+    log.info(f"request {req_id}: user {username} registered successfully")
+    return REGISTER_SUCCESS
 
 
 @app.route("/upload", methods=["POST"])
@@ -182,9 +231,9 @@ def handle_upload():
 
 @app.teardown_appcontext
 def clean_up_resources(exception):
-    if isinstance(exception, KeyboardInterrupt): 
+    if isinstance(exception, KeyboardInterrupt):
         close_connection(mongo_client)
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

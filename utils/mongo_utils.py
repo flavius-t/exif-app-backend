@@ -24,6 +24,8 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.errors import ServerSelectionTimeoutError
 
+from utils.constants import USERNAME_FIELD, PASSWORD_FIELD
+
 
 log = logging.getLogger(__name__)
 
@@ -32,8 +34,6 @@ load_dotenv()
 MONGO_USER = os.getenv("MONGO_USER")
 MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 
-USERNAME_FIELD = "username"
-PASSWORD_FIELD = "password"
 TIMEOUT_MS = 5000
 
 
@@ -157,7 +157,7 @@ def delete_user(users: dict, username: str) -> None:
         username (str): The username of the user to delete
 
     """
-    log.debug(f"Deleting user '{username}' from collection '{users.name}'")
+    log.debug(f"Deleting user '{username}'")
     users.delete_one({USERNAME_FIELD: username})
 
 
