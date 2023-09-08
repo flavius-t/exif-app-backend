@@ -38,18 +38,23 @@ from utils.file_permissions import restrict_file_permissions
 
 
 load_dotenv()
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 MONGO_URI = os.getenv("MONGO_URI")
-DB_NAME = os.getenv("DB_NAME")
-USERS_COLLECTION = os.getenv("USERS_COLLECTION")
 
 
 # Flask app and api setup
 app = Flask(__name__)
 CORS(app)
 
+FLASK_ENV = os.getenv("FLASK_ENV")
+if FLASK_ENV == "production":
+    app.config.from_object("config.ProductionConfig")
+else:
+    app.config.from_object("config.DevelopmentConfig")
+
 
 # MongoDB setup
+DB_NAME = app.config["DB_NAME"]
+USERS_COLLECTION = app.config["USERS_COLLECTION"]
 mongo_client = create_mongo_client(MONGO_URI)
 db = create_db(mongo_client, DB_NAME)
 users = create_collection(db, USERS_COLLECTION)
@@ -236,4 +241,4 @@ def clean_up_resources(exception):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)

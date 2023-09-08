@@ -23,7 +23,7 @@ from utils.mongo_utils import (
     close_connection,
     _is_connected_to_server,
 )
-from utils.constants import TEST_DB, TEST_COLLECTION
+from exif import DB_NAME, USERS_COLLECTION
 
 
 dotenv.load_dotenv()
@@ -67,14 +67,14 @@ def test_create_mongo_client_invalid_url():
 
 
 def test_create_db(mongo_client):
-    db = create_db(mongo_client, TEST_DB)
+    db = create_db(mongo_client, DB_NAME)
     assert db is not None
     assert isinstance(db, Database)
 
 
 def test_create_collection(mongo_client):
-    db = create_db(mongo_client, TEST_DB)
-    collection = create_collection(db, TEST_COLLECTION)
+    db = create_db(mongo_client, DB_NAME)
+    collection = create_collection(db, USERS_COLLECTION)
     assert collection is not None
     assert isinstance(collection, Collection)
 
@@ -87,8 +87,8 @@ def test_create_collection(mongo_client):
     ],
 )
 def test_add_user(mongo_client, username, password):
-    db = create_db(mongo_client, TEST_DB)
-    collection = create_collection(db, TEST_COLLECTION)
+    db = create_db(mongo_client, DB_NAME)
+    collection = create_collection(db, USERS_COLLECTION)
     # adding object to new collection sends to server
     add_user(collection, username, password)
     user = get_user(collection, username)
@@ -96,9 +96,9 @@ def test_add_user(mongo_client, username, password):
     assert user["username"] == username
     assert user["password"] == password
     db_list = mongo_client.list_database_names()
-    assert TEST_DB in db_list
+    assert DB_NAME in db_list
     collection_list = db.list_collection_names()
-    assert TEST_COLLECTION in collection_list
+    assert USERS_COLLECTION in collection_list
 
 
 @pytest.mark.parametrize(
@@ -109,7 +109,7 @@ def test_add_user(mongo_client, username, password):
     ],
 )
 def test_delete_user(mongo_client, username):
-    collection = Collection(mongo_client[TEST_DB], TEST_COLLECTION)
+    collection = Collection(mongo_client[DB_NAME], USERS_COLLECTION)
     user = get_user(collection, username)
     assert user is not None
     assert user["username"] == username
