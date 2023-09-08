@@ -30,19 +30,15 @@ The following files and constants are required to connect to and authenticate ag
 The following environment variables are defined:
 - `MONGO_URI`:
     * Used for connecting to local or remote MongoDB servers. The local server is accessed over Docker network, while the remote CI server is accessed over local host network:
-        * local: defined in `exif-app-docker/docker-compose.yml`
-        * remote: defined in `.github/workflows/pytest-tests.yml`
-- `DB_NAME`: `.env`, `.github/workflows/pytest-tests.yml`
-    * defines the name of the database to be used and/or created by the app, both on local and remote (CI) environments. This DB name is defined in separate files; they do not need to match, as local and remote environments use different MongoDB servers
-        * [ ] TODO: change to accomodate the use of different DBs on the local server (prod/dev)
-- `USERS_COLLECTION`: `.env`, `.github/workflows/pytest-tests.yml`
-    * defines the name of the collection storing users. As with `DB_NAME`, this does not need to match between local/remote environments. It is not required for the local dev/prod environments to define different names for this.
+        * connecting to local server: defined in `exif-app-docker/docker-compose.yml`
+        * connecting to remote server: defined in `.github/workflows/pytest-tests.yml`
+- `DB_NAME`: `config.py`
+    * defines the name of the database to be used and/or created by the app, both on local and remote (CI) environments. Note, this defaults to the same development database name for both local dev and remote CI environments.
+- `USERS_COLLECTION`: `config.py`
+    * defines the name of the collection storing users. It is not required for the local dev/prod environments to define different names for this.
 - `MONGO_USER`, `MONGO_PASSWORD`: `.env`, `.github/workflows/pytest-tests.yml`
-    * used in `utils.mongo_utils.py` for authenticating against the local/remote mongoDB servers. These do not need to match.
-      
-
-Note, authentication env vars for MongoDB for connecting to the MongoDB server must match those from `.env` in `exif-app-docker` repo.
-
+    * used in `utils.mongo_utils.py` for authenticating against the local/remote mongoDB servers. These do not need to match each other.
+    * However, auth details for the local server must match those defined in the `exif-app-docker` repository.
 ---
 
 ### Dockerization
