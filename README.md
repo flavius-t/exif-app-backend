@@ -9,25 +9,18 @@ This is the Flask backend for an image EXIF metadata viewing web application.
 ## Setup
 
 ### Environment Variables
-Ensure `.env` is present in repo root directory with the following fields:
+Ensure `.env` is present in local repo root directory with the following fields:
 ```
-DB_NAME=<database-name>
-USERS_COLLECTION=<collection-name>
 MONGO_USER=<mongo-server-root-username>
 MONGO_PASSWORD=<mongo-server-root-password>
+FLASK_ENV=<'development'/'production'>
 ```
 
 ## MongoDB Connections
 The backend must connect to two different MongoDB servers, depending on the situation, as shown in the diagram below.
 ![exif-backend-mongo](https://github.com/flavius-t/exif-app-backend/assets/77416463/d8bc7d07-d894-481e-9020-723208b82642)
-
-The following files and constants are required to connect to and authenticate against each MongoDB server:
-1. MongoDB Server Container (Local)
-    - `DB_NAME`
-2. GH Actions MongoDB Server (Remote)
-    - `.github/workflows/pytest-tests.yml`
     
-The following environment variables are defined:
+The following environment variables must be defined:
 - `MONGO_URI`:
     * Used for connecting to local or remote MongoDB servers. The local server is accessed over Docker network, while the remote CI server is accessed over local host network:
         * connecting to local server: defined in `exif-app-docker/docker-compose.yml`
@@ -38,7 +31,7 @@ The following environment variables are defined:
     * defines the name of the collection storing users. It is not required for the local dev/prod environments to define different names for this.
 - `MONGO_USER`, `MONGO_PASSWORD`: `.env`, `.github/workflows/pytest-tests.yml`
     * used in `utils.mongo_utils.py` for authenticating against the local/remote mongoDB servers. These do not need to match each other.
-    * However, auth details for the local server must match those defined in the `exif-app-docker` repository.
+    * Auth details for the local server must exactly match those defined in the `exif-app-docker` repository.
 ---
 
 ### Dockerization
