@@ -7,13 +7,23 @@ import uuid
 import logging
 import zipfile
 import os
+import datetime
 from io import BytesIO
 
 from dotenv import load_dotenv
-from flask import Flask, request, send_file, make_response
+from flask import Flask, request, send_file, make_response, jsonify
 from flask_cors import CORS
+from flask_jwt_extended import (
+    JWTManager,
+    jwt_required,
+    create_access_token,
+    get_jwt_identity,
+    get_jwt,
+    set_access_cookies,
+    unset_jwt_cookies,
+)
 
-from utils.constants import ZIP_NAME, USERNAME_FIELD, PASSWORD_FIELD
+from utils.constants import ZIP_NAME
 from utils.extract_meta import extract_metadata, ExtractMetaError
 from utils.zip import unzip_file, zip_files, ZipError, UnzipError
 from utils.upload_utils import (
@@ -33,8 +43,10 @@ from utils.mongo_utils import (
     create_collection,
     close_connection,
     add_user,
+    get_user,
 )
 from utils.file_permissions import restrict_file_permissions
+from models.users import User
 
 
 load_dotenv()
@@ -44,6 +56,7 @@ MONGO_URI = os.getenv("MONGO_URI")
 # Flask app and api setup
 app = Flask(__name__)
 CORS(app)
+
 
 FLASK_ENV = os.getenv("FLASK_ENV")
 if FLASK_ENV == "production":
@@ -58,6 +71,17 @@ USERS_COLLECTION = app.config["USERS_COLLECTION"]
 mongo_client = create_mongo_client(MONGO_URI)
 db = create_db(mongo_client, DB_NAME)
 users = create_collection(db, USERS_COLLECTION)
+
+# JWT setup
+app.config["JWT_COOKIE_SECURE"] = False  # TODO: set True for production
+app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+JWT_EXPIRES_MINS = app.config["JWT_EXPIRATION_DELTA_MINS"]
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(minutes=JWT_EXPIRES_MINS)
+app.config["JWT_COOKIE_REFRESH_WINDOW"] = app.config[
+    "JWT_REFRESH_WINDOW_MINS"
+]  # issues a new cookie if the user is within 15 minutes of expiry
+jwt = JWTManager(app)
 
 
 # logging setup
@@ -100,45 +124,8 @@ ERR_ZIP_CORRUPT = "Zip file is corrupted", 400
 ERR_SAVE_ZIP = "Internal error occured while processing images: failed to save zipfile", 500
 
 
-# /register endpoint responses
-ERR_FIELDS_MISSING = "Request is missing username or password", 400
-ERR_USER_EXISTS = "User already exists", 409
-REGISTER_SUCCESS = "User registration successful", 200
-
-
-@app.route("/register", methods=["POST"])
-def handle_register():
-    """
-    Handles user registration requests.
-    """
-    req_id = str(uuid.uuid4())
-    log.info(f"Received new registration request, assigning request_id {req_id}")
-
-    if not request.json:
-        log.error(f"request {req_id}: request contains no json")
-        return ERR_NO_JSON
-
-    username = request.json.get(USERNAME_FIELD)
-    password = request.json.get(PASSWORD_FIELD)
-
-    if not (username and password):
-        log.error(f"request {req_id}: request missing username or password")
-        return ERR_FIELDS_MISSING
-
-    user = users.find_one({USERNAME_FIELD: username})
-
-    if user is not None:
-        log.error(f"request {req_id}: user {username} already exists")
-        return ERR_USER_EXISTS
-
-    # TODO: hash password
-    users.insert_one({USERNAME_FIELD: username, PASSWORD_FIELD: password})
-
-    log.info(f"request {req_id}: user {username} registered successfully")
-    return REGISTER_SUCCESS
-
-
 @app.route("/upload", methods=["POST"])
+# TODO: jwt_required
 def handle_upload():
     """
     Handles image processing requests.
@@ -232,6 +219,91 @@ def handle_upload():
 
     log.info(f"request {req_id}: sending response")
     return response
+
+
+ERR_MISSING_CREDENTIALS = "Missing username or password", 400
+ERR_USER_NOT_EXIST = "User does not exist", 400
+ERR_WRONG_PASSWORD = "Wrong password", 400
+ERR_CREATE_JWT = "JWT creation failed", 500
+ERR_USER_EXISTS = "User already exists", 409
+ERR_CREATE_USER = "Failed to create new user", 500
+
+REGISTER_SUCCESS = "User registration successful", 201
+LOGIN_SUCCESS = "User login successful", 200
+LOGOUT_SUCCESS = "User logout successful", 200
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    if request.method == "POST":
+        data = request.get_json()
+        username = data.get("username")
+        password = data.get("password")
+
+        if username is None or password is None:
+            return jsonify(message=ERR_MISSING_CREDENTIALS[0]), ERR_MISSING_CREDENTIALS[1]
+
+        user = get_user(users, username)
+
+        if not user:
+            return jsonify(message=ERR_USER_NOT_EXIST[0]), ERR_USER_NOT_EXIST[1]
+
+        if user["password"] == password:
+            try:
+                response = jsonify(message=LOGIN_SUCCESS[0])
+                access_token = create_access_token(identity=str(user["_id"]))
+                set_access_cookies(response, access_token)
+                return response, LOGIN_SUCCESS[1]
+            except Exception:
+                return jsonify(message=ERR_CREATE_JWT[0]), ERR_CREATE_JWT[1]
+        else:
+            return jsonify(message=ERR_WRONG_PASSWORD[0]), ERR_WRONG_PASSWORD[1]
+
+
+@app.route("/register", methods=["POST"])
+def register():
+    if request.method == "POST":
+        data = request.get_json()
+        username = data.get("username")
+        password = data.get("password")
+
+        if username is None or password is None:
+            return jsonify(message=ERR_MISSING_CREDENTIALS[0]), ERR_MISSING_CREDENTIALS[1]
+
+        if get_user(users, username):
+            return jsonify(message=ERR_USER_EXISTS[0]), ERR_USER_EXISTS[1]
+
+        try:
+            user = User(username=username, password=password)
+            add_user(users, user.username, user.password)
+        except Exception:
+            return jsonify(message=ERR_CREATE_USER[0]), ERR_CREATE_USER[1]
+
+        return jsonify(message=REGISTER_SUCCESS[0]), REGISTER_SUCCESS[1]
+
+
+@app.route("/logout", methods=["GET"])
+def logout():
+    response = jsonify(message=LOGOUT_SUCCESS[0])
+    unset_jwt_cookies(response)
+    return response, LOGOUT_SUCCESS[1]
+
+
+@app.after_request
+def refresh_expiring_jwts(response):
+    try:
+        exp_timestamp = get_jwt()["exp"]
+        now = datetime.now()
+        target_timestamp = datetime.datetime.timestamp(
+            now + datetime.timedelta(minutes=app.config["JWT_COOKIE_REFRESH_WINDOW"])
+        )
+        if target_timestamp > exp_timestamp:
+            access_token = create_access_token(identity=get_jwt_identity())
+            set_access_cookies(response, access_token)
+        return response
+    except (RuntimeError, KeyError):
+        # not a valid JWT
+        return response
 
 
 @app.teardown_appcontext

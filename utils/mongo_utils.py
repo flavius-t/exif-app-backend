@@ -24,7 +24,7 @@ from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.errors import ServerSelectionTimeoutError
 
-from utils.constants import USERNAME_FIELD, PASSWORD_FIELD
+from models.users import USERNAME_FIELD, PASSWORD_FIELD
 
 
 log = logging.getLogger(__name__)
@@ -119,6 +119,7 @@ def create_collection(db: Database, collection_name: str) -> Collection:
     return collection
 
 
+# TODO: abstract out collection from args
 def add_user(users: Collection, username: str, password: str) -> None:
     """
     Adds a user to a MongoDB collection
