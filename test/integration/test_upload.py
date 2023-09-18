@@ -62,6 +62,7 @@ def create_app():
             )
 
         yield client, access_token
+        delete_user(users, test_user["username"])
 
 
 @pytest.mark.parametrize("file_path", [TEST_IMAGE_1])

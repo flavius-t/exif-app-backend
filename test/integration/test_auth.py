@@ -3,6 +3,9 @@ Integration tests for authentication endpoints.
 """
 
 import pytest
+from datetime import timedelta
+
+from flask_jwt_extended import create_access_token, decode_token
 
 from exif import (
     app,
@@ -113,3 +116,23 @@ def test_protected_route_no_auth(client):
     auth_header = {"Authorization": "xxxx.yyyy.zzzz"}
     response = client.get("/profile", headers=auth_header)
     assert response.status_code == 401
+
+
+def test_refresh_expiring_jwts(client):
+    with app.test_request_context():
+        access_token = create_access_token(
+            identity=TEST_CREDENTIALS[USERNAME_FIELD], expires_delta=timedelta(minutes=1)
+        )
+        expires_target = decode_token(access_token)["exp"]
+
+    auth_header = {"Authorization": f"Bearer {access_token}"}
+    response = client.get("/profile", headers=auth_header)
+
+    assert response.status_code == 200
+    assert response.headers["Set-Cookie"] is not None
+
+    token = response.headers["Set-Cookie"].split(";")[0].split("=")[1]
+    decoded_token = decode_token(token)
+    expires_new = decoded_token["exp"]
+
+    assert expires_new > expires_target
