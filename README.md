@@ -13,7 +13,8 @@ Ensure `.env` is present in local repo root directory with the following fields:
 ```
 MONGO_USER=<mongo-server-root-username>
 MONGO_PASSWORD=<mongo-server-root-password>
-FLASK_ENV=<'development'/'production'>
+FLASK_ENV=<development/production>
+FLASK_SECRET_KEY=<your-flask-secret-key>
 ```
 
 ## MongoDB Connections
