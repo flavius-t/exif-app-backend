@@ -7,11 +7,21 @@ import uuid
 import logging
 import zipfile
 import os
+import datetime
 from io import BytesIO
 
 from dotenv import load_dotenv
-from flask import Flask, request, send_file, make_response
+from flask import Flask, request, send_file, make_response, jsonify
 from flask_cors import CORS
+from flask_jwt_extended import (
+    JWTManager,
+    jwt_required,
+    create_access_token,
+    get_jwt_identity,
+    get_jwt,
+    set_access_cookies,
+    unset_jwt_cookies,
+)
 
 from utils.constants import ZIP_NAME
 from utils.extract_meta import extract_metadata, ExtractMetaError
@@ -27,15 +37,20 @@ from utils.upload_utils import (
     SaveZipFileError,
     ZIP_SIZE_LIMIT_MB,
 )
-from utils.mongo_utils import create_mongo_client, create_db, create_collection, close_connection
+from utils.mongo_utils import (
+    create_mongo_client,
+    create_db,
+    create_collection,
+    close_connection,
+    add_user,
+    get_user,
+)
 from utils.file_permissions import restrict_file_permissions
+from models.users import User, USERNAME_FIELD, PASSWORD_FIELD
 
 
 load_dotenv()
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 MONGO_URI = os.getenv("MONGO_URI")
-DB_NAME = os.getenv("DB_NAME")
-USERS_COLLECTION = os.getenv("USERS_COLLECTION")
 
 
 # Flask app and api setup
@@ -43,10 +58,30 @@ app = Flask(__name__)
 CORS(app)
 
 
+FLASK_ENV = os.getenv("FLASK_ENV")
+if FLASK_ENV == "production":
+    app.config.from_object("config.ProductionConfig")
+else:
+    app.config.from_object("config.DevelopmentConfig")
+
+
 # MongoDB setup
+DB_NAME = app.config["DB_NAME"]
+USERS_COLLECTION = app.config["USERS_COLLECTION"]
 mongo_client = create_mongo_client(MONGO_URI)
 db = create_db(mongo_client, DB_NAME)
 users = create_collection(db, USERS_COLLECTION)
+
+# JWT setup
+app.config["JWT_COOKIE_SECURE"] = False  # TODO: set True for production
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+JWT_EXPIRES_MINS = app.config["JWT_EXPIRATION_DELTA_MINS"]
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(minutes=JWT_EXPIRES_MINS)
+app.config["JWT_COOKIE_REFRESH_WINDOW"] = app.config[
+    "JWT_REFRESH_WINDOW_MINS"
+]  # issues a new cookie if the user is within 15 minutes of expiry
+jwt = JWTManager(app)
 
 
 # logging setup
@@ -56,6 +91,11 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+# generic endpoint responses
+ERR_NO_JSON = "Request contains no json", 400
+
+
+# /upload endpoint responses
 ERR_NO_FILES = "No files contained in request", 400
 ERR_FILE_NAME = "Expected attached file to be named 'file'", 400
 ERR_NO_ZIP = "Request is missing zipfile", 400
@@ -84,7 +124,18 @@ ERR_ZIP_CORRUPT = "Zip file is corrupted", 400
 ERR_SAVE_ZIP = "Internal error occured while processing images: failed to save zipfile", 500
 
 
+@app.route("/profile", methods=["GET"])
+@jwt_required()
+def get_profile():
+    """
+    Returns the current user's profile.
+    """
+    user_id = get_jwt_identity()
+    return jsonify(message=f"Hello, {user_id}!"), 200
+
+
 @app.route("/upload", methods=["POST"])
+@jwt_required()
 def handle_upload():
     """
     Handles image processing requests.
@@ -180,11 +231,97 @@ def handle_upload():
     return response
 
 
+ERR_MISSING_CREDENTIALS = "Missing username or password", 400
+ERR_USER_NOT_EXIST = "User does not exist", 400
+ERR_WRONG_PASSWORD = "Wrong password", 400
+ERR_CREATE_JWT = "JWT creation failed", 500
+ERR_USER_EXISTS = "User already exists", 409
+ERR_CREATE_USER = "Failed to create new user", 500
+
+REGISTER_SUCCESS = "User registration successful", 201
+LOGIN_SUCCESS = "User login successful", 200
+LOGOUT_SUCCESS = "User logout successful", 200
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    if request.method == "POST":
+        data = request.get_json()
+        username = data.get(USERNAME_FIELD)
+        password = data.get(PASSWORD_FIELD)
+
+        if username is None or password is None:
+            return jsonify(message=ERR_MISSING_CREDENTIALS[0]), ERR_MISSING_CREDENTIALS[1]
+
+        user = get_user(users, username)
+
+        if not user:
+            return jsonify(message=ERR_USER_NOT_EXIST[0]), ERR_USER_NOT_EXIST[1]
+
+        if user[PASSWORD_FIELD] == password:
+            try:
+                response = jsonify(message=LOGIN_SUCCESS[0])
+                access_token = create_access_token(identity=user[USERNAME_FIELD])
+                set_access_cookies(response, access_token)
+                return response, LOGIN_SUCCESS[1]
+            except Exception:
+                return jsonify(message=ERR_CREATE_JWT[0]), ERR_CREATE_JWT[1]
+        else:
+            return jsonify(message=ERR_WRONG_PASSWORD[0]), ERR_WRONG_PASSWORD[1]
+
+
+@app.route("/register", methods=["POST"])
+def register():
+    if request.method == "POST":
+        data = request.get_json()
+        username = data.get(USERNAME_FIELD)
+        password = data.get(PASSWORD_FIELD)
+
+        if username is None or password is None:
+            return jsonify(message=ERR_MISSING_CREDENTIALS[0]), ERR_MISSING_CREDENTIALS[1]
+
+        if get_user(users, username):
+            return jsonify(message=ERR_USER_EXISTS[0]), ERR_USER_EXISTS[1]
+
+        try:
+            # TODO: hash password first
+            user = User(username=username, password=password)
+            add_user(users, user.username, user.password)
+        except Exception:
+            return jsonify(message=ERR_CREATE_USER[0]), ERR_CREATE_USER[1]
+
+        return jsonify(message=REGISTER_SUCCESS[0]), REGISTER_SUCCESS[1]
+
+
+@app.route("/logout", methods=["GET"])
+def logout():
+    response = jsonify(message=LOGOUT_SUCCESS[0])
+    unset_jwt_cookies(response)
+    return response, LOGOUT_SUCCESS[1]
+
+
+@app.after_request
+def refresh_expiring_jwts(response):
+    try:
+        exp_timestamp = get_jwt()["exp"]
+        now = datetime.datetime.now()
+        target_timestamp = datetime.datetime.timestamp(
+            now + datetime.timedelta(minutes=app.config["JWT_COOKIE_REFRESH_WINDOW"])
+        )
+        if target_timestamp > exp_timestamp:
+            access_token = create_access_token(identity=get_jwt_identity())
+            set_access_cookies(response, access_token)
+        return response
+    except (RuntimeError, KeyError):
+        # not a valid JWT
+        return response
+
+
 @app.teardown_appcontext
 def clean_up_resources(exception):
-    if isinstance(exception, KeyboardInterrupt): 
+    if isinstance(exception, KeyboardInterrupt):
         close_connection(mongo_client)
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
