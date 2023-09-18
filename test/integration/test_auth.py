@@ -1,9 +1,8 @@
 """
-Integration tests for the authentication endpoints.
+Integration tests for authentication endpoints.
 """
 
 import pytest
-from flask.testing import FlaskClient
 
 from exif import (
     app,
@@ -92,3 +91,25 @@ def test_logout_success(client):
     assert data["message"] == LOGOUT_SUCCESS[0]
     auth_token = response.headers["Set-Cookie"].split(";")[0].split("=")[1]
     assert auth_token == ""
+
+
+def test_protected_route_with_auth(client):
+    response = client.post("/register", json=TEST_CREDENTIALS)
+    assert response.status_code == REGISTER_SUCCESS[1]
+    response = client.post("/login", json=TEST_CREDENTIALS)
+    assert response.status_code == LOGIN_SUCCESS[1]
+
+    auth_token = response.headers["Set-Cookie"].split(";")[0].split("=")[1]
+    auth_header = {"Authorization": f"Bearer {auth_token}"}
+
+    response = client.get("/profile", headers=auth_header)
+    delete_user(users, TEST_CREDENTIALS[USERNAME_FIELD])
+
+    assert response.status_code == 200
+    assert response.get_json() == {"message": f"Hello, {TEST_CREDENTIALS[USERNAME_FIELD]}!"}
+
+
+def test_protected_route_no_auth(client):
+    auth_header = {"Authorization": "xxxx.yyyy.zzzz"}
+    response = client.get("/profile", headers=auth_header)
+    assert response.status_code == 401

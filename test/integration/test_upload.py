@@ -7,12 +7,15 @@ import zipfile
 import shutil
 from io import BytesIO
 from unittest.mock import patch
+from datetime import timedelta
 
 import pytest
 from flask.testing import FlaskClient
+from flask_jwt_extended import create_access_token
 
 from exif import (
     app,
+    users,
     ERR_NO_ZIP,
     ERR_NON_IMAGE_FILE,
     ERR_FILE_NAME,
@@ -26,6 +29,7 @@ from exif import (
 from test.testing_utils import create_file_of_size
 from utils.upload_utils import ZIP_SIZE_LIMIT_MB
 from utils.constants import UPLOAD_FOLDER
+from utils.mongo_utils import add_user, delete_user
 
 
 UPLOAD_ENDPOINT = "/upload"
@@ -41,11 +45,23 @@ TEST_EMPTY = os.path.join(TEST_FILES_FOLDER, "empty")
 TEST_IMAGE_1 = os.path.join(TEST_VALID_SINGLE, "DSC_2233.jpg")
 
 
-@pytest.fixture(name="client")
+@pytest.fixture(name="client", scope="module")
 def create_app():
     app.config["TESTING"] = True
     with app.test_client() as client:
-        yield client
+        test_user = {
+            "username": "test_user",
+            "password": "test_password",
+        }
+        delete_user(users, test_user["username"])
+        add_user(users, test_user["username"], test_user["password"])
+        with app.app_context():
+            access_token = create_access_token(
+                identity=test_user["username"],
+                expires_delta=timedelta(minutes=1),
+            )
+
+        yield client, access_token
 
 
 @pytest.mark.parametrize("file_path", [TEST_IMAGE_1])
@@ -57,11 +73,14 @@ def test_upload_file_no_zip(client: FlaskClient, file_path: str):
         client (FlaskClient): Flask test client
         file_path (str): path to file to post
     """
+    client, access_token = client
+
     with open(file_path, "rb") as file:
         response = client.post(
             UPLOAD_ENDPOINT,
             data={"file": (file, "image.jpg", "image/jpeg")},
             content_type="multipart/form-data",
+            headers={"Authorization": f"Bearer {access_token}"},
         )
 
     assert response.status_code == ERR_NO_ZIP[1]
@@ -75,11 +94,14 @@ def test_upload_misnamed_file(client: FlaskClient):
     Args:
         client (FlaskClient): Flask test client
     """
+    client, access_token = client
+
     with open(TEST_IMAGE_1, "rb") as file:
         response = client.post(
             UPLOAD_ENDPOINT,
             data={"image": (file, "image.jpg", "image/jpeg")},
             content_type="multipart/form-data",
+            headers={"Authorization": f"Bearer {access_token}"},
         )
 
     assert response.status_code == ERR_FILE_NAME[1]
@@ -93,7 +115,9 @@ def test_upload_missing_files(client: FlaskClient):
     Args:
         client (FlaskClient): Flask test client
     """
-    response = client.post(UPLOAD_ENDPOINT)
+    client, access_token = client
+
+    response = client.post(UPLOAD_ENDPOINT, headers={"Authorization": f"Bearer {access_token}"})
 
     assert response.status_code == ERR_NO_FILES[1]
     assert ERR_NO_FILES[0] in str(response.data)
@@ -120,10 +144,13 @@ def zip_folder_and_post(client: FlaskClient, folder_path: str) -> BytesIO:
 
     zip_buffer.seek(0)
 
+    client, access_token = client
+
     response = client.post(
         UPLOAD_ENDPOINT,
         data={"file": (zip_buffer, "images.zip", "application/zip")},
         content_type="multipart/form-data",
+        headers={"Authorization": f"Bearer {access_token}"},
     )
 
     return response
@@ -182,10 +209,13 @@ def test_upload_large_zip(client: FlaskClient):
     """
     zip_buffer = create_file_of_size(ZIP_SIZE_LIMIT_MB + 1)
 
+    client, access_token = client
+
     response = client.post(
         UPLOAD_ENDPOINT,
         data={"file": (zip_buffer, "images.zip", "application/zip")},
         content_type="multipart/form-data",
+        headers={"Authorization": f"Bearer {access_token}"},
     )
 
     assert response.status_code == ERR_ZIP_SIZE_LIMIT[1]
@@ -201,10 +231,13 @@ def test_upload_corrupted_zip(client: FlaskClient):
     """
     zip_buffer = BytesIO(b"corrupted")
 
+    client, access_token = client
+
     response = client.post(
         UPLOAD_ENDPOINT,
         data={"file": (zip_buffer, "images.zip", "application/zip")},
         content_type="multipart/form-data",
+        headers={"Authorization": f"Bearer {access_token}"},
     )
 
     assert response.status_code == ERR_ZIP_CORRUPT[1]
@@ -261,10 +294,13 @@ def test_upload_invalid_image_file(client: FlaskClient):
 
     zip_buffer.seek(0)
 
+    client, access_token = client
+
     response = client.post(
         UPLOAD_ENDPOINT,
         data={"file": (zip_buffer, "images.zip", "application/zip")},
         content_type="multipart/form-data",
+        headers={"Authorization": f"Bearer {access_token}"},
     )
 
     assert response.status_code == ERR_EXTRACT_META[1]
