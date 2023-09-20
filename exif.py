@@ -55,7 +55,8 @@ MONGO_URI = os.getenv("MONGO_URI")
 
 # Flask app and api setup
 app = Flask(__name__)
-CORS(app)
+ACCEPT_ORIGINS = ["http://localhost:3000"]
+CORS(app, origins=ACCEPT_ORIGINS, supports_credentials=True)
 
 
 FLASK_ENV = os.getenv("FLASK_ENV")
