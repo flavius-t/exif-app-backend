@@ -75,7 +75,7 @@ users = create_collection(db, USERS_COLLECTION)
 
 # JWT setup
 app.config["JWT_COOKIE_SECURE"] = False  # TODO: set True for production
-app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 JWT_EXPIRES_MINS = app.config["JWT_EXPIRATION_DELTA_MINS"]
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(minutes=JWT_EXPIRES_MINS)
