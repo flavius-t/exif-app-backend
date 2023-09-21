@@ -234,7 +234,7 @@ def handle_upload():
 
 ERR_MISSING_CREDENTIALS = "Missing username or password", 400
 ERR_USER_NOT_EXIST = "User does not exist", 400
-ERR_WRONG_PASSWORD = "Wrong password", 400
+ERR_WRONG_PASSWORD = "Wrong password", 401
 ERR_CREATE_JWT = "JWT creation failed", 500
 ERR_USER_EXISTS = "User already exists", 409
 ERR_CREATE_USER = "Failed to create new user", 500
