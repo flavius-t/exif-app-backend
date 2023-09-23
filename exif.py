@@ -295,6 +295,7 @@ def register():
 
 
 @app.route("/logout", methods=["GET"])
+@jwt_required()
 def logout():
     response = jsonify(message=LOGOUT_SUCCESS[0])
     unset_jwt_cookies(response)
