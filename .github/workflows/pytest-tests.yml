@@ -13,10 +13,11 @@ jobs:
     name: tests
     runs-on: ubuntu-latest
     env:
-      DB_NAME: 'test_db'
-      USERS_COLLECTION: 'users'
       MONGO_USER: ${{ secrets.MONGO_USER }}
       MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+      MONGO_URI: 'mongodb://localhost:27017'
+      FLASK_ENV: 'development'
+      FLASK_SECRET_KEY: 'top-secret-key'
     strategy:
       fail-fast: false
       matrix:
