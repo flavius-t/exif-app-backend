@@ -22,6 +22,7 @@ from flask_jwt_extended import (
     set_access_cookies,
     unset_jwt_cookies,
 )
+from flask_bcrypt import Bcrypt
 
 from utils.constants import ZIP_NAME
 from utils.extract_meta import extract_metadata, ExtractMetaError
@@ -57,6 +58,7 @@ MONGO_URI = os.getenv("MONGO_URI")
 app = Flask(__name__)
 ACCEPT_ORIGINS = ["http://localhost:3000"]
 CORS(app, origins=ACCEPT_ORIGINS, supports_credentials=True)
+bcrypt = Bcrypt(app)
 
 
 FLASK_ENV = os.getenv("FLASK_ENV")
@@ -238,6 +240,7 @@ ERR_WRONG_PASSWORD = "Wrong password", 401
 ERR_CREATE_JWT = "JWT creation failed", 500
 ERR_USER_EXISTS = "User already exists", 409
 ERR_CREATE_USER = "Failed to create new user", 500
+ERR_INTERNAL = "Login failed due to internal error", 500
 
 REGISTER_SUCCESS = "User registration successful", 201
 LOGIN_SUCCESS = "User login successful", 200
@@ -259,7 +262,13 @@ def login():
         if not user:
             return jsonify(message=ERR_USER_NOT_EXIST[0]), ERR_USER_NOT_EXIST[1]
 
-        if user[PASSWORD_FIELD] == password:
+        try:
+            is_valid_password = bcrypt.check_password_hash(user[PASSWORD_FIELD], password)
+        except ValueError as e:
+            log.error(f"Failed to decode hashed password for user {user} --> {e}")
+            return jsonify(message=ERR_INTERNAL[0]), ERR_INTERNAL[1]
+
+        if is_valid_password:
             try:
                 response = jsonify(message=LOGIN_SUCCESS[0])
                 access_token = create_access_token(identity=user[USERNAME_FIELD])
@@ -285,8 +294,8 @@ def register():
             return jsonify(message=ERR_USER_EXISTS[0]), ERR_USER_EXISTS[1]
 
         try:
-            # TODO: hash password first
-            user = User(username=username, password=password)
+            hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+            user = User(username=username, password=hashed_password)
             add_user(users, user.username, user.password)
         except Exception:
             return jsonify(message=ERR_CREATE_USER[0]), ERR_CREATE_USER[1]
