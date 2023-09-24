@@ -45,9 +45,10 @@ def test_registration_success(client):
 
 
 def test_login_success(client):
-    add_user(users, TEST_CREDENTIALS[USERNAME_FIELD], TEST_CREDENTIALS[PASSWORD_FIELD])
+    client.post("/register", json=TEST_CREDENTIALS)
     response = client.post("/login", json=TEST_CREDENTIALS)
     delete_user(users, TEST_CREDENTIALS[USERNAME_FIELD])
+    print(response)
 
     assert response.status_code == LOGIN_SUCCESS[1]
     data = response.get_json()
@@ -56,7 +57,7 @@ def test_login_success(client):
 
 
 def test_login_wrong_password(client):
-    add_user(users, TEST_CREDENTIALS[USERNAME_FIELD], TEST_CREDENTIALS[PASSWORD_FIELD])
+    client.post("/register", json=TEST_CREDENTIALS)
     invalid_login_data = {
         USERNAME_FIELD: TEST_CREDENTIALS[USERNAME_FIELD],
         PASSWORD_FIELD: "wrong_password",
